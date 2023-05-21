@@ -1,0 +1,11 @@
+- default: menu_index
+  url:   ""
+
+- default: menu_category
+  url:   "categories"
+
+- title: "Projects"
+  url: "projects"
+
+- default: menu_about
+  url:   "about"
