@@ -2,11 +2,12 @@
 layout: post
 title:  "Sparse Conditional Constant Propagation in Golang"
 date:   2023-05-27
-categories: [Golang]
+categories: [Golang, Compiler]
 tags: [compiler]
 ---
 
-Recently, I implemented sparse conditional constant propagation(SCCP) in Golang, which is an old but useful optimization, the detailed algorithm was described in **Mark N. Wegman, F. Kenneth Zadeck: Constant Propagation with Conditional Branches TOPLAS 1991**.
+### Introduction
+Recently, I implemented **sparse conditional constant propagation(SCCP)** in Golang, which is an old but useful optimization, the detailed algorithm was described in Mark N. Wegman, F. Kenneth Zadeck: Constant Propagation with Conditional Branches TOPLAS 1991.
 
 This algorithm uses three level lattice for SSA value
 
@@ -80,3 +81,24 @@ Ret v14 (94)
 The entire loop is removed. In this way, SCCP can discover optimization opportunities that cannot be found by just combining constant folding and constant propagation and dead code elimination separately.
 
 This advantage is usually manifested when code involves loops. Because loops have back edges, which often produce uncertain Phi values that are difficult to prove as constants in other optimizations, SCCP can take advantage of this. According to the aforementioned rules, SCCP simulates execution along the control flow and when it encounters a Phi, it can optimistically assume that the Phi is a constant and continue propagating constant facts along the control flow based on this assumption.
+
+### Performance evaluation
+In practice, when to run SCCP is also something worth considering. Running SCCP optimization in the early stages of compilation can identify more constants, eliminate more dead code, and fold more constant calculations. Running SCCP in the later stages of compilation can discover optimization opportunities that were not found by earlier optimizations. We compared the performance of running SCCP at different critical stages:
+
+| Placement | Constant | Deadcode |
+| --------- | -------- | -------- |
+| before early deadcode | 451088 | 96553 |
+| before pre-opt deadcode | 329419 | 116650 |
+| before opt deadcode | 6078 | 765 |
+| before gcse deadcode | 3539 | 763 |
+| before generic deadcode | 2735 | 545 |
+| before lower | 2444 | 535 |
+
+I conservatively propose to only place SCCP before `generic deadcode`. Ideally I think it should be performed both before `generic deadcode` and before `early deadcode`
+
+## Future work
+There is still a lot of work to be done in the future, and here are some that come to my mind at the moment (in order of difficulty):
+
+- Supporting more basic constant types, such as OpConstNil, OpConstNil
+- Supporting constant folding for more operations
+- Extending the constant lattice, implementing value range propagation, at least achieving what prove pass can currently do, and eventually removing prove pass.

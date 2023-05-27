@@ -14,33 +14,8 @@ layout: default
   <div class="post-content">
     {{ content }}
   </div>
-  <hr/>
-  <div class="post-info">
-    <div class="post-date">
-      {{ site.data.lang[site.language].post_write_date}}
-      {{ page.date | date: '%Y-%m-%d' }}
-      {% if page.last_modified_at %}
-        ,
-        {{ site.data.lang[site.language].post_update_date}}
-        {{ page.last_modified_at | date: '%Y-%m-%d' }}
-      {% endif %}
-    </div>
-    <div class="post-categories">
-      <span>{{ site.data.lang[site.language].post_categories }}</span>
-      {% for category in page.categories %}
-      <a 
-        href="{{ site.baseurl }}/categories#{{ category }}"
-        class="post-category">
-        {{ category }}
-      </a>
-      {% endfor %}
-    </div>
-    <div class="post-tags">
-      <span>{{ site.data.lang[site.language].post_tags }}</span>
-      {% for tag in page.tags %}
-      <span class="post-tag">{{ tag }}</span>
-      {% endfor %}
-    </div>
+  <!-- <hr/> -->
+  <!-- <div class="post-info">
     <div class="post-other">
       {% if page.next %}
       <div>
@@ -66,5 +41,5 @@ layout: default
     {% if site.comments %}
       {% include comments.html %}
     {% endif %}
-  </div>
+  </div> -->
 </article>
