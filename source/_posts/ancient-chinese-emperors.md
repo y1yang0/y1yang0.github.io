@@ -1,5 +1,5 @@
 ---
-title: "Cyber Cricket Fighting: Ancient Chinese Emperors"
+title: "Cyber Cricket Fighting of Ancient Chinese Emperors"
 date: 2026-02-12
 categories: [Misc]
 ---
@@ -303,6 +303,78 @@ A playful comparison of ancient Chinese emperors - their reigns, achievements, a
     font-weight: 400;
 }
 
+/* Dynasty Chart */
+.dynasty-chart-container {
+    margin-top: 32px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+.dynasty-chart-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-ink-black);
+}
+
+.dynasty-chart-body {
+    padding: 16px 12px 8px 12px;
+    overflow-x: auto;
+}
+
+.dynasty-chart-body svg {
+    display: block;
+}
+
+.chart-tooltip {
+    position: fixed;
+    background: #1f2937;
+    color: #f3f4f6;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    max-width: 200px;
+    white-space: nowrap;
+}
+
+.dynasty-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 10px 20px 14px;
+    border-top: 1px solid var(--color-border);
+}
+
+.dynasty-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dynasty-legend-item:hover {
+    opacity: 0.7;
+}
+
+.dynasty-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .emperor-table {
@@ -396,7 +468,12 @@ A playful comparison of ancient Chinese emperors - their reigns, achievements, a
             </table>
         </div>
     </div>
+    <div class="dynasty-chart-container">
+        <div class="dynasty-chart-header">朝代兴衰曲线</div>
+        <div class="dynasty-chart-body" id="dynastyChartBody"></div>
+    </div>
 </div>
+<div class="chart-tooltip" id="chartTooltip"></div>
 
 <script>
 /**
@@ -424,7 +501,7 @@ const emperors = [
     { name: "汉平帝 · 刘衎", dynasty: "西汉", reign: "前1–6", desc: "年幼即位，王莽实际掌权。", scores: { govern: 33, military: 30, welfare: 35, innovation: 40, charm: 31 } },
     
     // 新朝
-    { name: "王莽", dynasty: "新", reign: "9–23", desc: "被后世怀疑是穿越者的改革狂人，各种超前政策把自己玩死了。", scores: { govern: 50, military: 45, welfare: 35, innovation: 70, charm: 53 } },
+    { name: "王莽", dynasty: "新", reign: "9–23", desc: "被后世怀疑是穿越者的改革狂人，各种超前政策把自己玩死了。", scores: { govern: 40, military: 45, welfare: 35, innovation: 95, charm: 53 } },
     
     // 东汉
     { name: "汉光武帝 · 刘秀", dynasty: "东汉", reign: "25–57", desc: "史上学历最高的皇帝，完美的「位面之子」，以柔道治天下。", scores: { govern: 95, military: 90, welfare: 95, innovation: 82, charm: 96 } },
@@ -508,7 +585,7 @@ const emperors = [
     
     // 隋朝
     { name: "隋文帝 · 杨坚", dynasty: "隋", reign: "581–604", desc: "结束三百年乱世，开创三省六部制和科举制，西方人眼中的「千古一帝」。", scores: { govern: 92, military: 85, welfare: 85, innovation: 95, charm: 85 } },
-    { name: "隋炀帝 · 杨广", dynasty: "隋", reign: "604–618", desc: "基建狂魔+战争贩子，修大运河三征高句丽，把老爸攒的家底挥霍一空。", scores: { govern: 65, military: 60, welfare: 40, innovation: 82, charm: 67 } },
+    { name: "隋炀帝 · 杨广", dynasty: "隋", reign: "604–618", desc: "基建狂魔+战争贩子，修大运河三征高句丽，把老爸攒的家底挥霍一空。", scores: { govern: 55, military: 60, welfare: 10, innovation: 90, charm: 67 } },
     { name: "隋恭帝 · 杨侑", dynasty: "隋", reign: "617–618", desc: "李渊扶立，禅让给李渊，隋亡。", scores: { govern: 27, military: 25, welfare: 25, innovation: 30, charm: 26 } },
     
     // 唐朝
@@ -518,7 +595,7 @@ const emperors = [
     { name: "唐中宗 · 李显", dynasty: "唐", reign: "683–684, 705–710", desc: "两次为帝，韦后专权。", scores: { govern: 48, military: 45, welfare: 48, innovation: 55, charm: 46 } },
     { name: "唐睿宗 · 李旦", dynasty: "唐", reign: "684–690, 710–712", desc: "两次为帝，让位给武则天和李隆基。", scores: { govern: 57, military: 52, welfare: 58, innovation: 62, charm: 55 } },
     { name: "武则天", dynasty: "武周", reign: "690–705", desc: "唯一正统女皇帝，重用酷吏，发展科举，承上启下。", scores: { govern: 87, military: 78, welfare: 82, innovation: 90, charm: 90 } },
-    { name: "唐玄宗 · 李隆基", dynasty: "唐", reign: "712–756", desc: "前半生雄才伟略开创盛世，后半生沉迷美色玩坏江山，典型的虎头蛇尾案例。", scores: { govern: 82, military: 75, welfare: 80, innovation: 85, charm: 84 } },
+    { name: "唐玄宗 · 李隆基", dynasty: "唐", reign: "712–756", desc: "前半生雄才伟略开创盛世，后半生沉迷美色玩坏江山，典型的虎头蛇尾案例。", scores: { govern: 65, military: 55, welfare: 70, innovation: 75, charm: 80 } },
     { name: "唐肃宗 · 李亨", dynasty: "唐", reign: "756–762", desc: "平定安史之乱，但宦官势力抬头。", scores: { govern: 64, military: 72, welfare: 60, innovation: 65, charm: 67 } },
     { name: "唐代宗 · 李豫", dynasty: "唐", reign: "762–779", desc: "继续平叛，但藩镇割据形成。", scores: { govern: 59, military: 65, welfare: 55, innovation: 62, charm: 61 } },
     { name: "唐德宗 · 李适", dynasty: "唐", reign: "779–805", desc: "试图削藩，引发叛乱，实行两税法。", scores: { govern: 69, military: 60, welfare: 62, innovation: 68, charm: 65 } },
@@ -555,6 +632,26 @@ const emperors = [
     { name: "周世宗 · 柴荣", dynasty: "后周", reign: "954–959", desc: "五代最英明君主，可惜英年早逝。", scores: { govern: 89, military: 92, welfare: 88, innovation: 82, charm: 90 } },
     { name: "周恭帝 · 柴宗训", dynasty: "后周", reign: "959–960", desc: "禅让给赵匡胤，五代结束。", scores: { govern: 29, military: 28, welfare: 28, innovation: 32, charm: 28 } },
     
+    // 辽朝
+    { name: "辽太祖 · 耶律阿保机", dynasty: "辽", reign: "916–926", desc: "统一契丹八部，建立大辽，创制契丹文字。", scores: { govern: 85, military: 90, welfare: 70, innovation: 88, charm: 86 } },
+    { name: "辽太宗 · 耶律德光", dynasty: "辽", reign: "927–947", desc: "南下灭后晋，入主中原，改国号为大辽。", scores: { govern: 75, military: 88, welfare: 60, innovation: 70, charm: 78 } },
+    { name: "辽景宗 · 耶律贤", dynasty: "辽", reign: "969–982", desc: "励精图治，辽朝中兴，重用汉臣。", scores: { govern: 80, military: 75, welfare: 78, innovation: 75, charm: 80 } },
+    { name: "辽圣宗 · 耶律隆绪", dynasty: "辽", reign: "982–1031", desc: "澶渊之盟，辽朝全盛时期，统和中兴。", scores: { govern: 88, military: 85, welfare: 85, innovation: 82, charm: 86 } },
+    { name: "辽天祚帝 · 耶律延禧", dynasty: "辽", reign: "1101–1125", desc: "亡国之君，被金所灭。", scores: { govern: 20, military: 25, welfare: 20, innovation: 15, charm: 20 } },
+
+    // 西夏
+    { name: "夏景宗 · 李元昊", dynasty: "西夏", reign: "1038–1048", desc: "建立西夏，创西夏文，三战立国。", scores: { govern: 82, military: 90, welfare: 65, innovation: 88, charm: 84 } },
+    { name: "夏仁宗 · 李仁孝", dynasty: "西夏", reign: "1139–1193", desc: "西夏盛世，确立封建制度，重文教。", scores: { govern: 85, military: 70, welfare: 80, innovation: 78, charm: 82 } },
+    { name: "夏末帝 · 李睍", dynasty: "西夏", reign: "1226–1227", desc: "抵抗蒙古，城破被杀。", scores: { govern: 40, military: 60, welfare: 30, innovation: 20, charm: 45 } },
+
+    // 金朝
+    { name: "金太祖 · 完颜阿骨打", dynasty: "金", reign: "1115–1123", desc: "女真英雄，3000破10万，灭辽建金。", scores: { govern: 88, military: 99, welfare: 75, innovation: 85, charm: 92 } },
+    { name: "金太宗 · 完颜吴乞买", dynasty: "金", reign: "1123–1135", desc: "灭北宋，靖康之耻的制造者。", scores: { govern: 80, military: 95, welfare: 65, innovation: 70, charm: 78 } },
+    { name: "金海陵王 · 完颜亮", dynasty: "金", reign: "1150–1161", desc: "迁都燕京，极具野心但残暴，采石矶战败被杀。", scores: { govern: 65, military: 75, welfare: 40, innovation: 75, charm: 55 } },
+    { name: "金世宗 · 完颜雍", dynasty: "金", reign: "1161–1189", desc: "小尧舜，大定之治，金朝巅峰。", scores: { govern: 92, military: 80, welfare: 92, innovation: 85, charm: 90 } },
+    { name: "金章宗 · 完颜璟", dynasty: "金", reign: "1189–1208", desc: "文化极盛，但国势转衰，明昌之治。", scores: { govern: 70, military: 60, welfare: 70, innovation: 82, charm: 75 } },
+    { name: "金哀宗 · 完颜守绪", dynasty: "金", reign: "1224–1234", desc: "虽然努力试图挽救危局，奈何积重难返，蔡州自缢。", scores: { govern: 60, military: 70, welfare: 50, innovation: 50, charm: 65 } },
+
     // 北宋
     { name: "宋太祖 · 赵匡胤", dynasty: "北宋", reign: "960–976", desc: "陈桥兵变黄袍加身，杯酒释兵权，结束五代十国。", scores: { govern: 89, military: 85, welfare: 88, innovation: 86, charm: 89 } },
     { name: "宋太宗 · 赵光义", dynasty: "北宋", reign: "976–997", desc: "统一全国，但北伐失败，重文轻武政策确立。", scores: { govern: 80, military: 65, welfare: 80, innovation: 85, charm: 76 } },
@@ -563,7 +660,7 @@ const emperors = [
     { name: "宋英宗 · 赵曙", dynasty: "北宋", reign: "1063–1067", desc: "在位短暂，濮议之争。", scores: { govern: 64, military: 58, welfare: 65, innovation: 70, charm: 62 } },
     { name: "宋神宗 · 赵顼", dynasty: "北宋", reign: "1067–1085", desc: "支持王安石变法，但党争激烈。", scores: { govern: 77, military: 68, welfare: 72, innovation: 82, charm: 74 } },
     { name: "宋哲宗 · 赵煦", dynasty: "北宋", reign: "1085–1100", desc: "新旧党争持续，朝政动荡。", scores: { govern: 62, military: 60, welfare: 62, innovation: 72, charm: 60 } },
-    { name: "宋徽宗 · 赵佶", dynasty: "北宋", reign: "1100–1126", desc: "顶级文艺青年，琴棋书画样样精通，治国理政一窍不通，成功从艺术家转型阶下囚。", scores: { govern: 15, military: 5, welfare: 15, innovation: 98, charm: 11 } },
+    { name: "宋徽宗 · 赵佶", dynasty: "北宋", reign: "1100–1126", desc: "顶级文艺青年，琴棋书画样样精通，治国理政一窍不通，成功从艺术家转型阶下囚。", scores: { govern: 15, military: 5, welfare: 15, innovation: 40, charm: 60 } },
     { name: "宋钦宗 · 赵桓", dynasty: "北宋", reign: "1126–1127", desc: "靖康之变被俘，北宋灭亡。", scores: { govern: 29, military: 25, welfare: 28, innovation: 40, charm: 28 } },
     
     // 南宋
@@ -600,7 +697,7 @@ const emperors = [
     { name: "明武宗 · 朱厚照", dynasty: "明", reign: "1505–1521", desc: "最爱Cosplay的皇帝，给自己封大将军头衔，把紫禁城当游乐场，玩得倒是挺开心。", scores: { govern: 40, military: 65, welfare: 35, innovation: 48, charm: 44 } },
     { name: "明世宗 · 朱厚熜", dynasty: "明", reign: "1521–1567", desc: "20年不上朝的炼丹boy，在后宫专心修仙，把朝政扔给严嵩打理。", scores: { govern: 66, military: 60, welfare: 58, innovation: 68, charm: 63 } },
     { name: "明穆宗 · 朱载坖", dynasty: "明", reign: "1567–1572", desc: "隆庆开关，经济繁荣。", scores: { govern: 75, military: 65, welfare: 72, innovation: 72, charm: 70 } },
-    { name: "明神宗 · 朱翊钧", dynasty: "明", reign: "1572–1620", desc: "前期有张居正带飞，后期开启躺平模式，30年罢工不上朝，把明朝活生生耗死。", scores: { govern: 64, military: 70, welfare: 58, innovation: 75, charm: 61 } },
+    { name: "明神宗 · 朱翊钧", dynasty: "明", reign: "1572–1620", desc: "前期有张居正带飞，后期开启躺平模式，30年罢工不上朝，把明朝活生生耗死。", scores: { govern: 50, military: 70, welfare: 58, innovation: 50, charm: 61 } },
     { name: "明光宗 · 朱常洛", dynasty: "明", reign: "1620", desc: "29天速通皇帝职业，红丸案主角，堪称明朝最短命体验卡。", scores: { govern: 0, military: 0, welfare: 0, innovation: 10, charm: 5 } },
     { name: "明熹宗 · 朱由校", dynasty: "明", reign: "1620–1627", desc: "痴迷木工的手艺人，做家具比治国在行，把朝政外包给魏忠贤自己玩斧锯。", scores: { govern: 5, military: 10, welfare: 5, innovation: 25, charm: 5 } },
     { name: "明思宗 · 朱由检", dynasty: "明", reign: "1627–1644", desc: "勤政但多疑，煤山自缢，明朝灭亡。", scores: { govern: 49, military: 48, welfare: 42, innovation: 58, charm: 50 } },
@@ -608,16 +705,16 @@ const emperors = [
     // 清朝
     { name: "清太祖 · 努尔哈赤", dynasty: "清", reign: "1616–1626", desc: "建立后金，创八旗制度。", scores: { govern: 82, military: 92, welfare: 62, innovation: 75, charm: 86 } },
     { name: "清太宗 · 皇太极", dynasty: "清", reign: "1626–1643", desc: "改国号为清，为入关奠基。", scores: { govern: 86, military: 90, welfare: 75, innovation: 78, charm: 88 } },
-    { name: "清世祖 · 福临", dynasty: "清", reign: "1643–1661", desc: "顺治帝，入关第一帝，统一全国。", scores: { govern: 74, military: 82, welfare: 70, innovation: 75, charm: 76 } },
-    { name: "清圣祖 · 玄烨", dynasty: "清", reign: "1661–1722", desc: "康熙帝，在位61年，平三藩收台湾，康乾盛世开端。", scores: { govern: 90, military: 92, welfare: 83, innovation: 85, charm: 90 } },
-    { name: "清世宗 · 胤禛", dynasty: "清", reign: "1722–1735", desc: "中国历史上最勤政的皇帝，摊丁入亩取消人头税，通过改革给康乾盛世续命。", scores: { govern: 92, military: 78, welfare: 90, innovation: 90, charm: 82 } },
-    { name: "清高宗 · 弘历", dynasty: "清", reign: "1735–1796", desc: "乾隆帝，在位60年，十全武功，但晚年奢侈腐败。", scores: { govern: 84, military: 88, welfare: 80, innovation: 90, charm: 84 } },
-    { name: "清仁宗 · 颙琰", dynasty: "清", reign: "1796–1820", desc: "嘉庆帝，诛和珅，但国势已衰。", scores: { govern: 64, military: 60, welfare: 60, innovation: 68, charm: 63 } },
-    { name: "清宣宗 · 旻宁", dynasty: "清", reign: "1820–1850", desc: "道光帝，鸦片战争战败，签订南京条约。", scores: { govern: 47, military: 38, welfare: 42, innovation: 55, charm: 45 } },
-    { name: "清文宗 · 奕詝", dynasty: "清", reign: "1850–1861", desc: "咸丰帝，太平天国运动，第二次鸦片战争，英法联军。", scores: { govern: 18, military: 10, welfare: 10, innovation: 30, charm: 17 } },
-    { name: "清穆宗 · 载淳", dynasty: "清", reign: "1861–1875", desc: "同治帝，慈禧垂帘听政，同光中兴。", scores: { govern: 54, military: 52, welfare: 52, innovation: 60, charm: 52 } },
-    { name: "清德宗 · 载湉", dynasty: "清", reign: "1875–1908", desc: "光绪帝，戊戌变法失败，被慈禧囚禁。", scores: { govern: 54, military: 45, welfare: 50, innovation: 68, charm: 51 } },
-    { name: "清宣统帝 · 溥仪", dynasty: "清", reign: "1908–1912", desc: "3岁就失业的史上最年轻退休皇帝，见证了2000年帝制的终结，后来还当过伪满傀儡。", scores: { govern: 0, military: 0, welfare: 0, innovation: 10, charm: 5 } }
+    { name: "清世祖 · 顺治", dynasty: "清", reign: "1643–1661", desc: "顺治帝，入关第一帝，统一全国。", scores: { govern: 74, military: 82, welfare: 70, innovation: 75, charm: 76 } },
+    { name: "清圣祖 · 康熙", dynasty: "清", reign: "1661–1722", desc: "康熙帝，在位61年，平三藩收台湾，康乾盛世开端。", scores: { govern: 90, military: 92, welfare: 83, innovation: 85, charm: 90 } },
+    { name: "清世宗 · 雍正", dynasty: "清", reign: "1722–1735", desc: "中国历史上最勤政的皇帝，摊丁入亩取消人头税，通过改革给康乾盛世续命。", scores: { govern: 92, military: 78, welfare: 90, innovation: 90, charm: 82 } },
+    { name: "清高宗 · 乾隆", dynasty: "清", reign: "1735–1796", desc: "乾隆帝，在位60年，十全武功，但晚年奢侈腐败。", scores: { govern: 84, military: 88, welfare: 80, innovation: 90, charm: 84 } },
+    { name: "清仁宗 · 嘉庆", dynasty: "清", reign: "1796–1820", desc: "嘉庆帝，诛和珅，但国势已衰。", scores: { govern: 64, military: 60, welfare: 60, innovation: 68, charm: 63 } },
+    { name: "清宣宗 · 道光", dynasty: "清", reign: "1820–1850", desc: "道光帝，鸦片战争战败，签订南京条约。", scores: { govern: 47, military: 38, welfare: 42, innovation: 55, charm: 45 } },
+    { name: "清文宗 · 咸丰", dynasty: "清", reign: "1850–1861", desc: "咸丰帝，太平天国运动，第二次鸦片战争，英法联军。", scores: { govern: 45, military: 30, welfare: 25, innovation: 40, charm: 25 } },
+    { name: "清穆宗 · 同治", dynasty: "清", reign: "1861–1875", desc: "同治帝，慈禧垂帘听政，同光中兴。", scores: { govern: 54, military: 52, welfare: 52, innovation: 60, charm: 52 } },
+    { name: "清德宗 · 光绪", dynasty: "清", reign: "1875–1908", desc: "光绪帝，戊戌变法失败，被慈禧囚禁。", scores: { govern: 54, military: 45, welfare: 50, innovation: 68, charm: 51 } },
+    { name: "清宣统帝 · 宣统", dynasty: "清", reign: "1908–1912", desc: "3岁就失业的史上最年轻退休皇帝，见证了2000年帝制的终结，后来还当过伪满傀儡。", scores: { govern: 0, military: 0, welfare: 0, innovation: 10, charm: 5 } }
 ];
 
 
@@ -738,6 +835,170 @@ function sortTable(field, forceOrder) {
     renderTable(filtered);
 }
 
+/* Dynasty chart colors - auto generated */
+const dynastyChartColors = {};
+function getDynastyColor(dynasty) {
+    if (!dynastyChartColors[dynasty]) {
+        // Generate a stable, visually distinct color from dynasty name hash
+        let hash = 0;
+        for (let i = 0; i < dynasty.length; i++) hash = dynasty.charCodeAt(i) + ((hash << 5) - hash);
+        const h = ((hash % 360) + 360) % 360;
+        dynastyChartColors[dynasty] = `hsl(${h}, 65%, 45%)`;
+    }
+    return dynastyChartColors[dynasty];
+}
+
+/* Render dynasty chart */
+function renderDynastyChart() {
+    const container = document.getElementById('dynastyChartBody');
+    const tooltip = document.getElementById('chartTooltip');
+    if (!container) return;
+
+    // Use chronological order (original array order)
+    // Filter out 新/武周, merge into adjacent dynasties for continuity
+    const chartSkipDynasties = new Set(['新', '武周']);
+    const data = emperors
+        .filter(e => !chartSkipDynasties.has(e.dynasty))
+        .map(e => {
+            const mapped = { ...e, total: calculateTotal(e.scores), dynasty_orig: e.dynasty };
+            if (e.dynasty === '东汉' || e.dynasty === '西汉') mapped.chartDynasty = '汉';
+            else if (e.dynasty === '北宋' || e.dynasty === '南宋') mapped.chartDynasty = '宋';
+            else mapped.chartDynasty = e.dynasty;
+            return mapped;
+        });
+    const n = data.length;
+
+    // Chart dimensions
+    const pointGap = Math.max(5, Math.min(8, 1200 / n));
+    const W = Math.max(800, n * pointGap + 80);
+    const H = 300;
+    const padL = 36, padR = 16, padT = 20, padB = 40;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+
+    // Y scale: 0 to 500
+    const yMax = 500, yMin = 0;
+    const toX = i => padL + (i / (n - 1)) * chartW;
+    const toY = v => padT + (1 - (v - yMin) / (yMax - yMin)) * chartH;
+
+    // Group by chartDynasty
+    const dynastyRanges = [];
+    let cur = null;
+    data.forEach((e, i) => {
+        if (!cur || cur.dynasty !== e.chartDynasty) {
+            cur = { dynasty: e.chartDynasty, start: i, end: i };
+            dynastyRanges.push(cur);
+        } else {
+            cur.end = i;
+        }
+    });
+
+    // Build SVG
+    let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // Grid lines
+    for (let v = 0; v <= 500; v += 100) {
+        const y = toY(v);
+        svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+        svg += `<text x="${padL - 4}" y="${y + 3}" text-anchor="end" fill="#9ca3af" font-size="9">${v}</text>`;
+    }
+
+    // Compute all points
+    const pts = data.map((e, i) => ({ x: toX(i), y: toY(e.total) }));
+
+    // Catmull-Rom to cubic bezier control points
+    const yTop = toY(yMax), yBot = toY(yMin);
+    const clampY = v => Math.max(yTop, Math.min(yBot, v));
+    function catmullRomToBezier(p0, p1, p2, p3) {
+        const t = 0.35;
+        return {
+            cp1x: p1.x + (p2.x - p0.x) * t / 3,
+            cp1y: clampY(p1.y + (p2.y - p0.y) * t / 3),
+            cp2x: p2.x - (p3.x - p1.x) * t / 3,
+            cp2y: clampY(p2.y - (p3.y - p1.y) * t / 3)
+        };
+    }
+
+    // Get dynasty color for a given index
+    function colorAt(i) {
+        for (const r of dynastyRanges) {
+            if (i >= r.start && i <= r.end) return getDynastyColor(r.dynasty);
+        }
+        return '#6b7280';
+    }
+
+    // Dynasty background bands + labels
+    dynastyRanges.forEach(range => {
+        const color = getDynastyColor(range.dynasty);
+        if (range.start !== range.end) {
+            const x1 = toX(range.start), x2 = toX(range.end);
+            svg += `<rect x="${x1}" y="${padT}" width="${x2 - x1}" height="${chartH}" fill="${color}" opacity="0.04" rx="2"/>`;
+        }
+        if (range.end - range.start >= 2) {
+            const midIdx = Math.floor((range.start + range.end) / 2);
+            svg += `<text x="${toX(midIdx)}" y="${H - 8}" text-anchor="middle" fill="${color}" font-size="9" font-weight="600" opacity="0.8">${range.dynasty}</text>`;
+        }
+    });
+
+    // Draw smooth curve segment by segment, colored per dynasty
+    for (let i = 0; i < n - 1; i++) {
+        const p0 = pts[Math.max(0, i - 1)];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[Math.min(n - 1, i + 2)];
+        const { cp1x, cp1y, cp2x, cp2y } = catmullRomToBezier(p0, p1, p2, p3);
+        const color = colorAt(i);
+        svg += `<path d="M${p1.x},${p1.y} C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+
+    // Dots on top
+    dynastyRanges.forEach(range => {
+        const color = getDynastyColor(range.dynasty);
+        for (let i = range.start; i <= range.end; i++) {
+            const r = (i === range.start || i === range.end) ? 3 : 2;
+            svg += `<circle cx="${pts[i].x}" cy="${pts[i].y}" r="${r}" fill="${color}" stroke="white" stroke-width="1" class="chart-dot" data-idx="${i}"/>`;
+        }
+    });
+
+    // Reference lines: max, avg, min
+    const totals = data.map(e => e.total);
+    const maxVal = Math.max(...totals);
+    const minVal = Math.min(...totals);
+    const avg = Math.round(totals.reduce((s, v) => s + v, 0) / n);
+    const maxY = toY(maxVal), avgY = toY(avg), minY = toY(minVal);
+    svg += `<line x1="${padL}" y1="${maxY}" x2="${W - padR}" y2="${maxY}" stroke="#059669" stroke-width="0.7" stroke-dasharray="4,3" opacity="0.5"/>`;
+    svg += `<text x="${W - padR + 2}" y="${maxY + 3}" fill="#059669" font-size="8" opacity="0.6">高${maxVal}</text>`;
+    svg += `<line x1="${padL}" y1="${avgY}" x2="${W - padR}" y2="${avgY}" stroke="#b91c1c" stroke-width="0.7" stroke-dasharray="4,3" opacity="0.5"/>`;
+    svg += `<text x="${W - padR + 2}" y="${avgY + 3}" fill="#b91c1c" font-size="8" opacity="0.6">均${avg}</text>`;
+    svg += `<line x1="${padL}" y1="${minY}" x2="${W - padR}" y2="${minY}" stroke="#6b7280" stroke-width="0.7" stroke-dasharray="4,3" opacity="0.5"/>`;
+    svg += `<text x="${W - padR + 2}" y="${minY + 3}" fill="#6b7280" font-size="8" opacity="0.6">低${minVal}</text>`;
+
+    svg += `</svg>`;
+    container.innerHTML = svg;
+
+    // Tooltip interaction
+    container.querySelectorAll('.chart-dot').forEach(dot => {
+        dot.style.cursor = 'pointer';
+        dot.addEventListener('mouseenter', (ev) => {
+            const idx = parseInt(dot.dataset.idx);
+            const e = data[idx];
+            dot.setAttribute('r', '5');
+            tooltip.innerHTML = `<b>${e.name}</b><br>${e.dynasty_orig || e.dynasty} · ${e.reign}<br>总分 <b>${e.total}</b>`;
+            tooltip.style.opacity = '1';
+            const rect = dot.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top - 60) + 'px';
+        });
+        dot.addEventListener('mouseleave', () => {
+            const idx = parseInt(dot.dataset.idx);
+            const range = dynastyRanges.find(r => idx >= r.start && idx <= r.end);
+            const isEdge = range && (idx === range.start || idx === range.end);
+            dot.setAttribute('r', isEdge ? '3' : '2');
+            tooltip.style.opacity = '0';
+        });
+    });
+}
+
 /* Initialize */
 (function init() {
     // Prepare data
@@ -801,5 +1062,12 @@ function sortTable(field, forceOrder) {
     
     // Initial render - sorted by total score descending (high to low)
     sortTable('total', 'desc');
+    
+    // Render dynasty chart
+    renderDynastyChart();
+    
+    window.addEventListener('resize', () => {
+        renderDynastyChart();
+    });
 })();
 </script>
