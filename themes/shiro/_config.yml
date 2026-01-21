@@ -1,0 +1,55 @@
+# Navigation menu
+menu:
+#  - name: Home
+#    url: /
+#  - name: Archives
+#    url: /archives
+#  - name: Categories
+#    url: /categories
+#  - name: Tags
+#    url: /tags
+#  - name: About
+#    url: /about
+#  - name: GitHub
+#    url: https://github.com
+#    # Open in new tab
+#    target: _blank
+
+site:
+  favicon: /favicon.svg
+  # Whether to display the seal (stamp) in the header
+  seal: true
+  # The character to display in the seal (default: 白)
+  # seal_text: 黑
+  rss:
+    enabled: false
+    path: /atom.xml
+  notetext: "白は、余白の名。"
+
+article:
+  # Whether to display the TOC button in the post page
+  show_toc: true
+
+# Analytics
+analytics:
+  # Only support Google Analytics 4
+  google:
+    enabled: false
+    id: ""
+
+# Comment systems
+comments:
+  enabled: false
+  provider: disqus
+  disqus:
+    shortname: ""
+
+# Excerpt settings
+excerpt:
+  # If post has <!-- more -->, use it.
+  # Otherwise fallback to auto-truncated excerpt.
+  fallback:
+    enabled: true
+    length: 200
+  # Whether to display the "Read More" button
+  show_read_more: true

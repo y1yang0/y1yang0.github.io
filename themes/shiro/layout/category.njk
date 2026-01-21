@@ -1,0 +1,54 @@
+{% extends "_layout.njk" %}
+{% import "_macro/ui.njk" as ui %}
+
+{% block content %}
+<section class="section-shell">
+    <header class="section-header">
+        <h1 class="section-title">
+            {% if is_category() and page.category %}
+            {{ __('nav.categories') }}: {{ page.category }}
+            {% else %}
+            {{ __('nav.categories') }}
+            {% endif %}
+        </h1>
+        {{ ui.divider() }}
+    </header>
+
+    {% if is_category() %}
+        {% import "_macro/archive.njk" as archive with context %}
+        {% set cat = site.categories.findOne({name: page.category}) %}
+        {% if cat and cat.posts.length > 0 %}
+            {{ archive.render_list(cat.posts.sort('date', -1)) }}
+        {% else %}
+            {% include "_partial/common/empty.njk" %}
+        {% endif %}
+    {% else %}
+        {% if site.categories.length > 0 %}
+            <div class="space-y-16 max-w-2xl mx-auto">
+                {% for cat in site.categories.toArray() %}
+                <div id="cat-{{ cat.name }}" class="scroll-mt-24">
+                    <h2 class="section-heading">
+                        {{ ui.icon_folder() }}
+                        {{ cat.name }}
+                    </h2>
+                    <div class="space-y-4">
+                        {% for post in cat.posts.sort('date', -1).toArray() %}
+                        <article class="archive-item group">
+                            <time datetime="{{ date(post.date, 'YYYY/MM/DD') }}" class="archive-date">
+                                {{ date(post.date, 'YYYY/MM/DD') }}
+                            </time>
+                            <h3 class="archive-title">
+                                <a href="{{ url_for(post.path) }}" class="link-underline">{{ post.title }}</a>
+                            </h3>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            {% include "_partial/common/empty.njk" %}
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

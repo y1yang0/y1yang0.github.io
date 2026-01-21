@@ -1,0 +1,12 @@
+nav:
+  menu: Menu
+  archives: Archives
+  categories: Categories
+  tags: Tags
+
+page:
+  prev: Previous
+  next: Next
+
+index:
+  read_more: Read More

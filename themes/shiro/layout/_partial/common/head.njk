@@ -1,0 +1,60 @@
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+        (function(){var k='shiro-dark-mode',v=localStorage.getItem(k);if(v==='1'){document.documentElement.classList.add('dark');return}if(v==='0')return;var m=window.matchMedia;if(m&&m('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark');return}if(m&&m('(prefers-color-scheme: light)').matches)return;var h=new Date().getHours();if(h>=22||h<7)document.documentElement.classList.add('dark')})();
+    </script>
+    <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
+
+    <!-- SEO: description -->
+    {% set seo_desc = page.description | default(page.excerpt | striptags | trim | truncate(160, true, '...') | default(config.description, true), true) %}
+    {% if seo_desc %}
+    <meta name="description" content="{{ seo_desc }}" />
+    {% endif %}
+
+    <!-- SEO: keywords -->
+    {% set kw = page.keywords | default(config.keywords, true) %}
+    {% if kw %}
+    <meta name="keywords" content="{% if kw is string %}{{ kw }}{% else %}{{ kw | join(', ') }}{% endif %}" />
+    {% endif %}
+
+    <!-- SEO: canonical -->
+    <link rel="canonical" href="{{ full_url_for(path) }}" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="{% if is_post() %}article{% else %}website{% endif %}" />
+    <meta property="og:title" content="{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% else %}{{ page.title }}{% endif %}" />
+    {% if seo_desc %}
+    <meta property="og:description" content="{{ seo_desc }}" />
+    {% endif %}
+    <meta property="og:url" content="{{ full_url_for(path) }}" />
+    <meta property="og:site_name" content="{{ config.title | default("白夜書簡", true) }}" />
+    {% if is_post() %}
+    <meta property="article:published_time" content="{{ page.date.toISOString() }}" />
+    {% if page.updated %}<meta property="article:modified_time" content="{{ page.updated.toISOString() }}" />{% endif %}
+    {% if config.author %}<meta property="article:author" content="{{ config.author }}" />{% endif %}
+    {% endif %}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% else %}{{ page.title }}{% endif %}" />
+    {% if seo_desc %}
+    <meta name="twitter:description" content="{{ seo_desc }}" />
+    {% endif %}
+
+    <!-- Favicon -->
+    {% if theme.site.favicon %}
+    <link rel="icon" href="{{ url_for(theme.site.favicon) }}" />
+    {% endif %}
+
+    <!-- CSS -->
+    {% if page.layout === 'index' or page.layout === 'post' or page.layout === 'page' %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery.min.css">
+    {% endif %}
+    <link rel="stylesheet" href="{{ url_for('css/style.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('css/ext.css') }}">
+
+    <!-- Analytics -->
+    {% include "../analytics/google.njk" %}
+
+</head>

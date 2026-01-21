@@ -1,0 +1,72 @@
+{% import "_macro/ui.njk" as ui %}
+<header class="relative">
+    <div class="relative flex items-start justify-center">
+        <div class="text-center">
+            <div class="relative inline-block">
+                <h1 class="site-title">
+                    <a href="{{ url_for('/') }}">{{ config.title | default("白夜書簡", true) }}</a>
+                </h1>
+                <!-- Seal: Mathematically Centered, click to toggle dark mode -->
+                {% if theme.site.seal %}
+                <button id="darkModeToggleSeal" type="button"
+                    class="absolute left-full top-1/2 -translate-y-1/2 ml-1 sm:ml-4 origin-left scale-75 sm:scale-110 cursor-pointer focus-elegant rounded-full p-0.5 hover:opacity-90 active:scale-95 transition-all"
+                    aria-pressed="false" aria-label="Toggle dark mode">
+                    <span class="seal-inner block">{{ ui.seal(theme.site.seal_text | default("白")) }}</span>
+                </button>
+                {% endif %}
+            </div>
+            <p class="site-subtitle">
+                {{ config.subtitle | default("以夜為箋，寄心成簡。", true) }}
+            </p>
+            {% if theme.site.rss.enabled %}
+            <div class="mt-3 sm:mt-4 flex justify-center">
+                <a class="group inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200/80 dark:border-slate-500/50 bg-slate-50/50 dark:bg-[#44403c]/80 text-xs tracking-wide text-slate-500 dark:text-[#c9c4b8] hover:bg-white dark:hover:bg-[#44403c] hover:text-slate-800 dark:hover:text-[#e8e4d9] hover:border-slate-300 dark:hover:border-slate-500/70 hover:shadow-xs transition-all duration-300"
+                    href="{{ url_for(theme.site.rss.path) }}" target="_blank">
+                    {{ ui.icon_rss() }}
+                    <span>RSS</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- Navigation -->
+<nav class="mt-8 md:mt-10" aria-label="{{ __('nav.menu') }}">
+    <!-- Mobile Toggle -->
+    <div class="flex items-center justify-center md:hidden">
+        <button id="menuBtn"
+            class="focus-elegant inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-500/50 bg-white/60 dark:bg-[#44403c]/80 px-4 py-2 text-sm text-slate-700 dark:text-[#d4d0c4] shadow-xs backdrop-blur-xs"
+            aria-expanded="false" aria-controls="mobileMenu">
+            <span class="text-base leading-none tracking-widest">{{ __('nav.menu') }}</span>
+            {{ ui.icon_chevron_down() }}
+        </button>
+    </div>
+
+    <!-- Desktop Menu -->
+    <div class="hidden md:block">
+        <ul class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-base text-slate-700 dark:text-[#d4d0c4] px-4">
+            {% for item in theme.menu %}
+            <li><a class="focus-elegant rounded-md px-2 py-1 hover:text-slate-900 dark:hover:text-[#e8e4d9] transition-colors"
+                    href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}"{% endif %}>{{ item.name }}</a></li>
+            {% if not loop.last %}
+            <li class="text-slate-300 dark:text-slate-500/70 select-none" aria-hidden="true">/</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Mobile Menu Panel -->
+    <div id="mobileMenu" class="menu-panel md:hidden mt-4" data-open="false">
+        <ul
+            class="mx-auto max-w-sm max-h-menu overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-500/50 bg-white/70 dark:bg-[#3a3632] backdrop-blur-xs shadow-xs">
+            {% for item in theme.menu %}
+            <li><a class="focus-elegant block px-6 py-3 text-center text-slate-800 dark:text-[#d4d0c4] hover:bg-slate-50/80 dark:hover:bg-[#44403c]/60 transition-colors"
+                    href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}"{% endif %}>{{ item.name }}</a></li>
+            {% if not loop.last %}
+            <li class="h-px bg-slate-200/70 dark:bg-slate-500/50" aria-hidden="true"></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</nav>

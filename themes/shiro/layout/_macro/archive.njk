@@ -1,0 +1,30 @@
+{% import "_macro/ui.njk" as ui %}
+
+{% macro render_list(posts) %}
+    <div class="space-y-16 max-w-2xl mx-auto">
+        {% set currentYear = "" %}
+        {% for post in posts.toArray() %}
+            {% set postYear = date(post.date, 'YYYY') %}
+            {% if currentYear != postYear %}
+                {% if currentYear != "" %}</div></div>{% endif %}
+                {% set currentYear = postYear %}
+                <div class="relative">
+                    <h2 class="section-heading">
+                        {{ ui.icon_nav_arrow() }}
+                        {{ currentYear }}
+                    </h2>
+                    <div class="space-y-4">
+            {% endif %}
+            
+            <article class="archive-item group">
+                <time datetime="{{ date(post.date, 'YYYY/MM/DD') }}" class="archive-date">
+                    {{ date(post.date, 'YYYY/MM/DD') }}
+                </time>
+                <h3 class="archive-title">
+                    <a href="{{ url_for(post.path) }}" class="link-underline">{{ post.title }}</a>
+                </h3>
+            </article>
+        {% endfor %}
+        {% if currentYear != "" %}</div></div>{% endif %}
+    </div>
+{% endmacro %}

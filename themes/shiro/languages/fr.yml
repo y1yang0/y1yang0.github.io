@@ -1,0 +1,12 @@
+nav:
+  menu: Menu
+  archives: Archives
+  categories: Catégories
+  tags: Étiquettes
+
+page:
+  prev: Précédent
+  next: Suivant
+
+index:
+  read_more: Lire la suite

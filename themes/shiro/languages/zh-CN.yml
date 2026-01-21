@@ -1,0 +1,12 @@
+nav:
+  menu: 菜单
+  archives: 归档
+  categories: 分类
+  tags: 标签
+
+page:
+  prev: 上一页
+  next: 下一页
+
+index:
+  read_more: 阅读全文
