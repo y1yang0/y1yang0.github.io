@@ -1,0 +1,47 @@
+# Navigation menu
+menu:
+ - name: Home
+   url: /
+ - name: Archives
+   url: /archives
+#  - name: Categories
+#    url: /categories
+ - name: About
+   url: /about
+ - name: Github
+   url: https://github.com/y1yang0
+   # Open in new tab
+   target: _blank
+
+site:
+  favicon: /favicon.svg
+  # Whether to display the seal (stamp) in the header
+  seal: true
+  notetext: "临渊羡鱼，不如退而结网"
+  rss:
+    enabled: false
+    path: /atom.xml
+
+article:
+  show_toc: true
+
+# Analytics
+analytics:
+  # Only support Google Analytics 4
+  google:
+    enabled: false
+    id: ""
+
+# Comment systems
+comments:
+  enabled: true
+  provider: disqus
+  disqus:
+    shortname: ""
+
+# Excerpt settings
+excerpt:
+  fallback:
+    enabled: true
+    length: 200
+  show_read_more: false
