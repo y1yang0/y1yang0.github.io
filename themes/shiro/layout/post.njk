@@ -1,0 +1,47 @@
+{% extends "_layout.njk" %}
+{% from "_macro/ui.njk" import meta, render_tag with context %}
+
+{% block content %}
+<article class="content-article">
+    <header class="text-center mb-8">
+        <h1 class="page-title mb-4">
+            {{ page.title }}
+        </h1>
+        {{ meta(page, true, "mb-4") }}
+    </header>
+
+    <div class="prose-shiro">
+        {{ page.content }}
+    </div>
+
+    <!-- Tags -->
+    {% if page.tags and page.tags.length > 0 %}
+    <div class="mt-8 flex flex-wrap gap-2">
+        {% for tag in page.tags.toArray() %}
+        {{ render_tag(tag, false) }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Post Navigation -->
+    <div class="mt-12 pt-8 border-t border-slate-200/70 flex justify-between items-center text-sm md:text-base">
+        {% if page.prev %}
+        <a href="{{ url_for(page.prev.path) }}" class="post-nav-link group text-left">
+             <span aria-hidden="true">&larr;</span>
+             <span class="post-nav-title">{{ page.prev.title }}</span>
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        {% if page.next %}
+        <a href="{{ url_for(page.next.path) }}" class="post-nav-link group text-right">
+            <span class="post-nav-title">{{ page.next.title }}</span>
+            <span aria-hidden="true">&rarr;</span>
+        </a>
+        {% endif %}
+    </div>
+
+    {% include "_partial/comments/disqus.njk" %}
+</article>
+{% endblock %}

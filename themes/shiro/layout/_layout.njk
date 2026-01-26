@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ config.language }}" class="h-full scroll-smooth">
+{% import "_macro/ui.njk" as ui %}
+{% include "_partial/common/head.njk" %}
+
+<body class="h-full fog-bg text-slate-800">
+    {{ ui.svg_filters() }}
+
+    <div class="min-h-full px-4 pt-14 pb-6 md:pb-5">
+
+        <!-- Paper Card -->
+        <div
+            class="paper mx-auto w-full max-w-4xl rounded-2xl px-5 sm:px-8 md:px-12 lg:px-14 pt-10 pb-6 md:pt-12 md:pb-8">
+
+            {% include "_partial/common/header.njk" %}
+
+            <!-- Main Content -->
+            <main class="section-divider">
+                {% block content %}{% endblock %}
+
+                <!-- Floating TOC button -->
+                {% if theme.article.show_toc and is_post() %}
+                {{ ui.toc_button(toc(page.content, {list_number: false})) }}
+                {% endif %}
+            </main>
+
+            {% include "_partial/common/footer.njk" %}
+        </div>
+
+        <!-- Note Text -->
+        <div class="mt-4 text-center">
+            <p class="font-title text-xs sm:text-sm text-slate-400/70 tracking-note font-light select-none">
+                {{ theme.site.notetext }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/lightgallery.min.js"></script>
+    <script src="{{ url_for('js/lightgallery.js') }}"></script>
+    <script src="{{ url_for('js/main.js') }}"></script>
+</body>
+</html>

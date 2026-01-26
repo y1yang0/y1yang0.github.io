@@ -1,4 +1,0 @@
-[submodule "shiro"]
-	path = themes/shiro
-	url = https://github.com/y1yang0/hexo-theme-shiro
-	branch = yyang/customize

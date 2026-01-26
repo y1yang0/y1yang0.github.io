@@ -1,0 +1,73 @@
+{% import "_macro/ui.njk" as ui %}
+<header class="relative">
+    <div class="relative flex items-start justify-center">
+        <div class="text-center">
+            <div class="relative inline-block">
+                <h1 class="site-title">
+                    <a href="{{ url_for('/') }}">{{ config.title | default("白夜書簡", true) }}</a>
+                </h1>
+                <!-- Seal: Mathematically Centered -->
+                {% if theme.site.seal %}
+                <div
+                    class="absolute left-full top-1/2 -translate-y-1/2 ml-1 sm:ml-4 origin-left scale-75 sm:scale-110">
+                    {{ ui.seal(theme.site.seal_text | default("白")) }}
+                </div>
+                {% endif %}
+            </div>
+            <p class="site-subtitle">
+                {{ config.subtitle | default("以夜為箋，寄心成簡。", true) }}
+            </p>
+            {% if theme.site.rss.enabled %}
+            <div class="mt-3 sm:mt-4 flex justify-center">
+                <a class="group inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200/80 bg-slate-50/50 text-xs tracking-wide text-slate-500 hover:bg-white hover:text-slate-800 hover:border-slate-300 hover:shadow-xs transition-all duration-300"
+                    href="{{ url_for(theme.site.rss.path) }}" target="_blank">
+                    {{ ui.icon_rss() }}
+                    <span>RSS</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- Navigation -->
+<nav class="mt-8 md:mt-10" aria-label="{{ __('nav.menu') }}">
+    <!-- Mobile Toggle -->
+    <div class="flex items-center justify-center md:hidden">
+        <button id="menuBtn"
+            class="focus-elegant inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-4 py-2 text-sm text-slate-700 shadow-xs backdrop-blur-xs"
+            aria-expanded="false" aria-controls="mobileMenu">
+            <span class="text-base leading-none tracking-widest">{{ __('nav.menu') }}</span>
+            <span class="text-slate-400 hidden md:inline" aria-hidden="true">/</span>
+            <span class="oldstyle-nums text-xs tracking-wide hidden md:inline">{{ __('nav.menu') }}</span>
+            {{ ui.icon_chevron_down() }}
+        </button>
+    </div>
+
+    <!-- Desktop Menu -->
+    <div class="hidden md:block">
+        <ul class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-base text-slate-700 px-4">
+            {% for item in theme.menu %}
+            <li><a class="focus-elegant rounded-md px-2 py-1 hover:text-slate-900 transition-colors"
+                    href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}"{% endif %}>{{ item.name }}</a></li>
+            {% if not loop.last %}
+            <li class="text-slate-300 select-none" aria-hidden="true">/</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Mobile Menu Panel -->
+    <div id="mobileMenu" class="menu-panel md:hidden mt-4" data-open="false">
+        <ul
+            class="mx-auto max-w-sm max-h-menu overflow-y-auto rounded-2xl border border-slate-200 bg-white/70 backdrop-blur-xs shadow-xs">
+            {% for item in theme.menu %}
+            <li><a class="focus-elegant block px-6 py-3 text-center text-slate-800 hover:bg-slate-50/80 transition-colors"
+                    href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}"{% endif %}>{{ item.name }}</a></li>
+            {% if not loop.last %}
+            <li class="h-px bg-slate-200/70" aria-hidden="true"></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</nav>

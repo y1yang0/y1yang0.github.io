@@ -1,19 +1,17 @@
 ---
 layout: post
-title:  "Anatomy of Go Race Crash with Auto-instrumentation"
+title:  "Anatomy of Race Crash with Golang Auto Instrumentation"
 date:   2024-12-30
 categories: [Golang]
 ---
 
 Recently, we released and open-sourced our [compile-time auto-instrumentation tool for Go](https://github.com/alibaba/opentelemetry-go-auto-instrumentation)
 
-![](../images/otel-race-crash.png)
-
 A user reported that replacing the standard `go build -race` command with our tool's equivalent caused the resulting program to crash. The [`-race` flag](https://go.dev/doc/articles/race_detector) is a Go compiler option used to detect data races. It works by adding extra checks to every memory access, ensuring that multiple goroutines do not access shared variables unsafely at the same time.
 
 In theory, our tool should not interfere with the race detection code, so this crash was unexpected. I spent some time investigating the issue. The crash stack trace was as follows:
-```
 
+```
 (gdb) bt
 #0  0x000000000041e1c0 in __tsan_func_enter ()
 #1  0x00000000004ad05a in racecall ()
@@ -28,8 +26,10 @@ In theory, our tool should not interfere with the race detection code, so this c
 #10 0x00000000004a992a in runtime.systemstack ()
 ....
 ```
+
 As you can see, the crash originates in `__tsan_func_enter`, and the key trigger is the `runtime.contextPropagate` call. Our tool injects the following code at the beginning of the `runtime.newproc1` function:
-```go
+
+```golang
 func newproc1(fn *funcval, callergp *g, callerpc uintptr) (retVal0 *g) {
     // Our injected code
     retVal0.otel_trace_context = contextPropagate(callergp.otel_trace_context)
@@ -60,7 +60,7 @@ The Go compiler, when the `-race` flag is active, injects `racefuncenter()` and 
 
 ### Root Cause of the Crash
 Using **objdump** to inspect the source code of `__tsan_func_enter`, I saw that it takes two function arguments. The faulting instruction is the first line, `mov 0x10(%rdi),%rdx`, which is roughly equivalent to `rdx = *(rdi + 0x10)`. After printing the registers, we found that `rdi = 0`. According to the calling convention, `rdi` holds the first function argument. Therefore, the problem was that the first argument, `thr`, was 0.
-```
+```asm
 // void __tsan_func_enter(ThreadState *thr, void *pc);
 000000000041e1c0 <__tsan_func_enter>:
   41e1c0:  48 8b 57 10            mov    0x10(%rdi),%rdx

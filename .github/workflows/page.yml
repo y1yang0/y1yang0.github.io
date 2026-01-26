@@ -11,12 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # required to update submodules
           token: ${{ secrets.GITHUB_TOKEN }}
-          # If your repository depends on submodule, please see: https://github.com/actions/checkout
-          submodules: recursive
-      - name: Update submodule
-        run: git submodule update --remote --init --recursive
       - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:

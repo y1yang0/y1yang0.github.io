@@ -1,0 +1,18 @@
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() %}{{ page.title }} | {{ config.title | default("白夜書簡", true) }}{% else %}{{ page.title }} | {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
+
+    <!-- Favicon -->
+    {% if theme.site.favicon %}
+    <link rel="icon" href="{{ url_for(theme.site.favicon) }}" />
+    {% endif %}
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery.min.css">
+    <link rel="stylesheet" href="{{ url_for('css/style.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('css/ext.css') }}">
+
+    <!-- Analytics -->
+    {% include "../analytics/google.njk" %}
+</head>

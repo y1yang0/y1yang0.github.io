@@ -1,0 +1,41 @@
+{% extends "_layout.njk" %}
+{% from "_macro/ui.njk" import divider, render_tag with context %}
+
+{% block content %}
+<section class="section-shell">
+    <header class="section-header">
+        <h1 class="section-title">
+            {% if page.tag and is_tag() %}
+            {{ __('nav.tags') }}: {{ page.tag }}
+            {% else %}
+            {{ __('nav.tags') }}
+            {% endif %}
+        </h1>
+        {{ divider() }}
+    </header>
+
+    {% if is_tag() %}
+        {% import "_macro/archive.njk" as archive with context %}
+        {% set t = site.tags.findOne({name: page.tag}) %}
+        {% if t and t.posts.length > 0 %}
+            {{ archive.render_list(t.posts.sort('date', -1)) }}
+        {% else %}
+            {% include "_partial/common/empty.njk" %}
+        {% endif %}
+    {% else %}
+        <!-- Tag Cloud -->
+        {% if site.tags.length > 0 %}
+        <div class="text-center mt-12 mb-16">
+            <div class="flex flex-wrap justify-center gap-3">
+                {% set tags = site.tags.sort('name', 1).sort('length', -1) %}
+                {% for tag in tags.toArray() %}
+                {{ render_tag(tag, true) }}
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+            {% include "_partial/common/empty.njk" %}
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}
