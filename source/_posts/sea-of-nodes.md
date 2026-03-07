@@ -77,5 +77,5 @@ This reveals a crucial caveat: even SoN's greatest superpower—the "floating" n
 
 References:
 - [A Simple Graph-Based Intermediate Representation](https://www.oracle.com/technetwork/java/javase/tech/c2-ir95-150110.pdf)
-- [From_Quads_to_Graphs_An_Intermediate_Representation's_Journey](https://softlib.rice.edu/pub/CRPC-TRs/reports/CRPC-TR93366-S.pdf)
+- [From Quads to Graphs: An Intermediate Representation's Journey](https://softlib.rice.edu/pub/CRPC-TRs/reports/CRPC-TR93366-S.pdf)
 - [C2 The JIT In HotSpot](https://assets.ctfassets.net/oxjq45e8ilak/12JQgkvXnnXcPoAGoxB6le/5481932e755600401d607e20345d81d4/100752_1543361625_Cliff_Click_The_Sea_of_Nodes_and_the_HotSpot_JIT.pdf)

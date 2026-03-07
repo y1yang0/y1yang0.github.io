@@ -65,13 +65,15 @@
     opacity: 0;
 }
 
-#tocFabGroup:hover .toc-extra-btn {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn,
+#tocFabGroup.expanded .toc-extra-btn {
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
 }
 
-#tocFabGroup:hover .toc-extra-btn:disabled {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:disabled,
+#tocFabGroup.expanded .toc-extra-btn:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
@@ -82,10 +84,14 @@
 #tocFabGroup .toc-extra-btn:nth-child(3) { transition-delay: 0.03s; }
 #tocFabGroup .toc-extra-btn:nth-child(4) { transition-delay: 0s; }
 
-#tocFabGroup:hover .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(1),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(2),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(3),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(4),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
 
 .dark .toc-extra-btn {
     background: #3a3632;

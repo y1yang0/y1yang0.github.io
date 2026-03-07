@@ -247,6 +247,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tocBtn && tocPanel && tocFabGroup) {
         const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+        // Hover expand logic: only tocFab triggers expand, group mouseleave collapses
+        tocBtn.addEventListener('mouseenter', () => {
+            tocFabGroup.classList.add('expanded');
+        });
+        tocFabGroup.addEventListener('mouseleave', () => {
+            tocFabGroup.classList.remove('expanded');
+        });
+
         // Positioning: keep the FAB fixed to the viewport but aligned to the right edge of the main 'paper' container.
         const paperEl = document.querySelector('.paper');
 
