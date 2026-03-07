@@ -18,7 +18,7 @@ site:
   # Whether to display the seal (stamp) in the header
   seal: true
   seal_text: "𓄃"
-  notetext: "临渊羡鱼，不如退而结网"
+  notetext: "文王拘而演周易 仲尼厄而作春秋"
   rss:
     enabled: false
     path: /atom.xml

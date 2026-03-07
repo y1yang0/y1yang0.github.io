@@ -47,6 +47,14 @@
     <link rel="icon" href="{{ url_for(theme.site.favicon) }}" />
     {% endif %}
 
+    <!-- Preconnect to Google Fonts for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical fonts to prevent FOUT -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/yujisyuku/v3/FwZY7-Q-xVAi_ljnQsmCp0muzQ.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.gstatic.com/s/notoserifsc/v22/H4c8BXePl9DZ0Xe7gG9cyOj7mnqFX1nH.woff2" as="font" type="font/woff2" crossorigin>
+
     <!-- CSS -->
     {% if page.layout === 'index' or page.layout === 'post' or page.layout === 'page' %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery.min.css">
@@ -56,5 +64,6 @@
 
     <!-- Analytics -->
     {% include "../analytics/google.njk" %}
+    {% include "../analytics/clarity.njk" %}
 
 </head>

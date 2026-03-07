@@ -100,6 +100,10 @@ In practice, when to run SCCP is also something worth considering. Running SCCP 
 
 I conservatively propose to only place SCCP before `generic deadcode`. Ideally I think it should be performed both before `generic deadcode` and before `early deadcode`
 
+### Faster Convergence
+
+After the initial SCCP landing I found [more room](https://go-review.googlesource.com/c/go/+/740980), while working on other optimizations, including deduplicating the revisit worklist, skipping uses of values already at Bottom, and returning early when a value is already Bottom. SCCP converges faster without changing the optimization outcome. The SCCP phase in a full `make.bash` is ~9% faster.
+
 ### Future work
 There is still a lot of work to be done in the future, and here are some that come to my mind at the moment (in order of difficulty):
 

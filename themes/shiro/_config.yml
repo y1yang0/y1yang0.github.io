@@ -36,6 +36,10 @@ analytics:
   google:
     enabled: false
     id: ""
+  # Microsoft Clarity
+  clarity:
+    enabled: true
+    id: "vzb6r72095"
 
 # Comment systems
 comments:

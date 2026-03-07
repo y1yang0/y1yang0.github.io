@@ -1,4 +1,46 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---------- Font Loading: Wait for custom fonts before showing text ----------
+    function initFontLoading() {
+        // Check if Font Loading API is supported
+        if (document.fonts && document.fonts.load) {
+            // Load the title fonts
+            const fontPromises = [
+                document.fonts.load('1em "Yuji Syuku"'),
+                document.fonts.load('1em "Cardo"'),
+                document.fonts.load('1em "Noto Serif SC"')
+            ];
+            
+            Promise.all(fontPromises).then(() => {
+                document.documentElement.classList.add('fonts-loaded');
+            }).catch(() => {
+                // Fallback: show text anyway after timeout
+                setTimeout(() => {
+                    document.documentElement.classList.add('fonts-loaded');
+                }, 500);
+            });
+            
+            // Fallback: always show after 1.5s even if fonts not loaded
+            setTimeout(() => {
+                document.documentElement.classList.add('fonts-loaded');
+            }, 1500);
+        } else {
+            // Browser doesn't support Font Loading API, show immediately
+            document.documentElement.classList.add('fonts-loaded');
+        }
+    }
+    initFontLoading();
+
+    // ---------- 共享：从 <pre> 提取纯文本（支持 .line 或 innerHTML） ----------
+    function getCodeFromPre(preEl) {
+        if (!preEl) return '';
+        const lines = preEl.querySelectorAll('.line');
+        if (lines.length > 0) return Array.from(lines).map((l) => l.textContent).join('\n');
+        const html = preEl.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.textContent || preEl.textContent || '';
+    }
+
     // ========== Lunar Calendar & Festival Easter Eggs ==========
     // Lunar calendar data 1900-2100 (compressed)
     const lunarInfo = [
@@ -95,59 +137,244 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Festival config: { month, day, text, color, bgLight, bgDark }
     const festivals = [
-        { month: 1, day: 1, text: '福', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },      // 春节 - 中国红
-        { month: 1, day: 15, text: '元', color: '#ff6b35', bgLight: '#fff8f0', bgDark: '#3d3028' },    // 元宵 - 橙色
-        { month: 5, day: 5, text: '糯', color: '#5c8a4d', bgLight: '#f5fff5', bgDark: '#2a3d2a' },     // 端午 - 粟绿
-        { month: 7, day: 7, text: '缘', color: '#e75480', bgLight: '#fff5f8', bgDark: '#3d2a32' },     // 七夕 - 粉红
-        { month: 8, day: 15, text: '月', color: '#d4a017', bgLight: '#fffcf0', bgDark: '#3d3828' },    // 中秋 - 金色
-        { month: 9, day: 9, text: '菊', color: '#9b59b6', bgLight: '#faf5ff', bgDark: '#352a3d' },     // 重阳 - 紫色
-        { month: 12, day: 30, text: '除', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },   // 除夕 - 中国红
-        { month: 12, day: 29, text: '除', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },   // 除夕(小月) - 中国红
+        { month: 1, day: 1, text: '福', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },
+        { month: 1, day: 15, text: '元', color: '#ff6b35', bgLight: '#fff8f0', bgDark: '#3d3028' },
+        { month: 5, day: 5, text: '糯', color: '#5c8a4d', bgLight: '#f5fff5', bgDark: '#2a3d2a' },
+        { month: 7, day: 7, text: '缘', color: '#e75480', bgLight: '#fff5f8', bgDark: '#3d2a32' },
+        { month: 8, day: 15, text: '月', color: '#d4a017', bgLight: '#fffcf0', bgDark: '#3d3828' },
+        { month: 9, day: 9, text: '菊', color: '#9b59b6', bgLight: '#faf5ff', bgDark: '#352a3d' },
+        { month: 12, day: 30, text: '除', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },
+        { month: 12, day: 29, text: '除', color: '#c41e3a', bgLight: '#fff5f5', bgDark: '#3d2a2a' },
     ];
 
-    // Check if today is a festival and apply easter egg
-    function applyFestivalEasterEgg() {
-        const sealEl = document.getElementById('darkModeToggleSeal');
-        if (!sealEl) return;
+    // Solar term only displays for 1-2 days when entering (default theme most of the time)
+    const SOLAR_TERM_DISPLAY_DAYS = 2;
 
+    // Solar terms data: { name, month, day, color, bgLight, bgDark, desc }
+    const solarTerms = [
+        { name: '立春', month: 2, day: 4, color: '#7cb342', bgLight: '#f5faf0', bgDark: '#2a332a', desc: 'Beginning of Spring' },
+        { name: '雨水', month: 2, day: 19, color: '#5dade2', bgLight: '#f0f8fc', bgDark: '#28333d', desc: 'Rain Water' },
+        { name: '惊蛰', month: 3, day: 5, color: '#d4a574', bgLight: '#faf5f0', bgDark: '#332f2a', desc: 'Awakening of Insects' },
+        { name: '春分', month: 3, day: 20, color: '#52c41a', bgLight: '#f5fff0', bgDark: '#283328', desc: 'Spring Equinox' },
+        { name: '清明', month: 4, day: 5, color: '#13c2c2', bgLight: '#f0fafa', bgDark: '#283333', desc: 'Pure Brightness' },
+        { name: '谷雨', month: 4, day: 20, color: '#8fbc8f', bgLight: '#f5faf5', bgDark: '#2a332a', desc: 'Grain Rain' },
+        { name: '立夏', month: 5, day: 5, color: '#2e7d32', bgLight: '#f0faf0', bgDark: '#283328', desc: 'Beginning of Summer' },
+        { name: '小满', month: 5, day: 21, color: '#f5a623', bgLight: '#fffaf0', bgDark: '#333028', desc: 'Grain Buds' },
+        { name: '芒种', month: 6, day: 6, color: '#e6b800', bgLight: '#fffcf0', bgDark: '#333328', desc: 'Grain in Ear' },
+        { name: '夏至', month: 6, day: 21, color: '#ff6b6b', bgLight: '#fff5f5', bgDark: '#332a2a', desc: 'Summer Solstice' },
+        { name: '小暑', month: 7, day: 7, color: '#ff8c42', bgLight: '#fff8f0', bgDark: '#332f28', desc: 'Minor Heat' },
+        { name: '大暑', month: 7, day: 23, color: '#e74c3c', bgLight: '#fff5f5', bgDark: '#332a2a', desc: 'Major Heat' },
+        { name: '立秋', month: 8, day: 7, color: '#d4a017', bgLight: '#fffcf0', bgDark: '#333328', desc: 'Beginning of Autumn' },
+        { name: '处暑', month: 8, day: 23, color: '#daa520', bgLight: '#fffaf0', bgDark: '#333228', desc: 'End of Heat' },
+        { name: '白露', month: 9, day: 7, color: '#b0c4de', bgLight: '#f5f8fc', bgDark: '#2a3033', desc: 'White Dew' },
+        { name: '秋分', month: 9, day: 23, color: '#f0e68c', bgLight: '#fffff0', bgDark: '#333328', desc: 'Autumn Equinox' },
+        { name: '寒露', month: 10, day: 8, color: '#778899', bgLight: '#f5f5f8', bgDark: '#2a2a30', desc: 'Cold Dew' },
+        { name: '霜降', month: 10, day: 23, color: '#a9a9a9', bgLight: '#f8f8f8', bgDark: '#2d2d2d', desc: 'Frost Descent' },
+        { name: '立冬', month: 11, day: 7, color: '#5f9ea0', bgLight: '#f0f8f8', bgDark: '#283333', desc: 'Beginning of Winter' },
+        { name: '小雪', month: 11, day: 22, color: '#e8e8e8', bgLight: '#fafafa', bgDark: '#2d2d2d', desc: 'Minor Snow' },
+        { name: '大雪', month: 12, day: 7, color: '#d3d3d3', bgLight: '#f8f8f8', bgDark: '#2d2d2d', desc: 'Major Snow' },
+        { name: '冬至', month: 12, day: 21, color: '#2c3e50', bgLight: '#f5f5f8', bgDark: '#282a30', desc: 'Winter Solstice' },
+        { name: '小寒', month: 1, day: 5, color: '#b0e0e6', bgLight: '#f5fafc', bgDark: '#283033', desc: 'Minor Cold' },
+        { name: '大寒', month: 1, day: 20, color: '#4682b4', bgLight: '#f0f5fa', bgDark: '#282833', desc: 'Major Cold' }
+    ];
+
+    // Get current solar term based on date (only within 1-2 days of term date)
+    function getCurrentSolarTerm(date = new Date()) {
+        const sorted = [...solarTerms].sort((a, b) => {
+            if (a.month !== b.month) return a.month - b.month;
+            return a.day - b.day;
+        });
+
+        for (let i = sorted.length - 1; i >= 0; i--) {
+            const term = sorted[i];
+            let termDate = new Date(date.getFullYear(), term.month - 1, term.day);
+            if (termDate > date) termDate.setFullYear(termDate.getFullYear() - 1);
+
+            if (date >= termDate) {
+                const daysSince = Math.floor((date - termDate) / 86400000);
+                if (daysSince < SOLAR_TERM_DISPLAY_DAYS) {
+                    return { current: term, next: sorted[(i + 1) % sorted.length] };
+                }
+                break;
+            }
+        }
+        return { current: null, next: sorted[0] };
+    }
+
+    // Check for festival (returns null if no festival today)
+    function checkFestival() {
         const now = new Date();
         const lunar = solarToLunar(now.getFullYear(), now.getMonth() + 1, now.getDate());
         
-        // Check for festival (special handling for 除夕: check if 腊月三十 exists)
-        let festival = null;
         for (const f of festivals) {
             if (lunar.month === f.month && lunar.day === f.day) {
-                // For 除夕, verify it's actually the last day of the year
                 if (f.month === 12 && (f.day === 30 || f.day === 29)) {
                     const daysInMonth = lunarMonthDays(lunar.year, 12);
-                    if (lunar.day === daysInMonth) {
-                        festival = f;
-                        break;
-                    }
+                    if (lunar.day === daysInMonth) return f;
                 } else {
-                    festival = f;
-                    break;
+                    return f;
                 }
             }
         }
+        return null;
+    }
 
-        if (festival) {
-            // Update seal text
+    // Unified theme application (for both festival and solar term)
+    function applyTheme(theme) {
+        if (!theme) return;
+        
+        const sealEl = document.getElementById('darkModeToggleSeal');
+        
+        // Update seal text
+        if (sealEl) {
             const textEl = sealEl.querySelector('.seal-text');
-            if (textEl) textEl.textContent = festival.text;
-            
-            // Update seal color
-            document.documentElement.style.setProperty('--color-seal', festival.color);
-            
-            // Update background color
-            document.documentElement.style.setProperty('--festival-bg-light', festival.bgLight);
-            document.documentElement.style.setProperty('--festival-bg-dark', festival.bgDark);
-            document.body.classList.add('festival-bg');
+            if (textEl && theme.text) {
+                textEl.textContent = theme.text;
+            } else if (textEl && theme.name) {
+                textEl.textContent = theme.name.charAt(0);
+            }
+        }
+        
+        // Apply CSS variables
+        document.documentElement.style.setProperty('--color-seal', theme.color);
+        document.documentElement.style.setProperty('--festival-bg-light', theme.bgLight);
+        document.documentElement.style.setProperty('--festival-bg-dark', theme.bgDark);
+        
+        // Add body class
+        document.body.classList.add('festival-bg');
+        
+        // Store for debug
+        window.__SHIRO_CURRENT_THEME__ = theme;
+        
+        if (window.__SHIRO_DEBUG__) {
+            console.log(`[Theme] Applied: ${theme.name || theme.text} - Color: ${theme.color}`);
         }
     }
 
-    // Apply festival easter egg on load
-    applyFestivalEasterEgg();
+    // Main init: festival > solar term (festival: 1 day; solar term: 1-2 days only)
+    function initTheme() {
+        const festival = checkFestival();
+        
+        if (festival) {
+            applyTheme(festival);
+            window.__SHIRO_SOLAR_TERM__ = null;
+        } else {
+            const { current } = getCurrentSolarTerm();
+            if (current) {
+                window.__SHIRO_SOLAR_TERM__ = current;
+                applyTheme(current);
+            } else {
+                window.__SHIRO_SOLAR_TERM__ = null;
+                // Default theme when neither festival nor solar term
+            }
+        }
+    }
+
+    initTheme();
+
+    // ========== Debug Tool ==========
+    window.shiroDebug = {
+        // Get current solar term info
+        getSolarTerm() {
+            const { current, next } = getCurrentSolarTerm();
+            const now = new Date();
+            const nextDate = new Date(now.getFullYear(), next.month - 1, next.day);
+            if (nextDate < now) nextDate.setFullYear(nextDate.getFullYear() + 1);
+            const daysUntilNext = Math.ceil((nextDate - now) / 86400000);
+
+            console.log('╔════════════════════════════════════════╗');
+            console.log('║         节气主题 Debug 信息           ║');
+            console.log('╠════════════════════════════════════════╣');
+            console.log(`║ 当前节气: ${(current ? current.name : '(无)').padEnd(20)} ║`);
+            if (current) {
+                console.log(`║ 英文: ${current.desc.padEnd(23)} ║`);
+                console.log(`║ 主题色: ${current.color.padEnd(21)} ║`);
+            }
+            console.log(`║ 下个节气: ${next.name.padEnd(20)} ║`);
+            console.log(`║ 剩余天数: ${daysUntilNext.toString().padEnd(20)} ║`);
+            console.log('╚════════════════════════════════════════╝');
+            return { current, next, daysUntilNext };
+        },
+        
+        // Preview specific solar term
+        preview(name) {
+            const term = solarTerms.find(t => t.name === name);
+            if (!term) {
+                console.error(`[Debug] 节气 "${name}" 不存在。可用节气：`, solarTerms.map(t => t.name).join(', '));
+                return;
+            }
+            
+            window.__SHIRO_SOLAR_TERM__ = term;
+            applyTheme(term);
+            console.log(`[Debug] Previewing: ${term.name} (${term.color})`);
+            return term;
+        },
+        
+        // Preview festival
+        festival(name) {
+            const f = festivals.find(f => f.text === name || f.name === name);
+            if (!f) {
+                console.error(`[Debug] 节日 "${name}" 不存在。可用节日：`, festivals.map(f => f.text).join(', '));
+                return;
+            }
+            window.__SHIRO_SOLAR_TERM__ = null;
+            applyTheme(f);
+            console.log(`[Debug] Previewing festival: ${f.text}`);
+            return f;
+        },
+        
+        // List all solar terms
+        list() {
+            console.log('24节气列表:');
+            solarTerms.forEach((term, i) => {
+                const marker = term.name === window.__SHIRO_SOLAR_TERM__?.name ? '★' : ' ';
+                console.log(` ${marker} ${(i+1).toString().padStart(2)}. ${term.name} (${term.month}/${term.day}) - ${term.color}`);
+            });
+            return solarTerms;
+        },
+        
+        // Cycle through all solar terms (for testing)
+        cycle(interval = 2000) {
+            let index = 0;
+            console.log('[Debug] Starting theme cycle...');
+            
+            const intervalId = setInterval(() => {
+                const term = solarTerms[index];
+                this.preview(term.name);
+                index = (index + 1) % solarTerms.length;
+            }, interval);
+            
+            window.__SHIRO_CYCLE_ID__ = intervalId;
+            console.log('[Debug] Cycle started. Call shiroDebug.stopCycle() to stop.');
+            
+            return intervalId;
+        },
+        
+        stopCycle() {
+            if (window.__SHIRO_CYCLE_ID__) {
+                clearInterval(window.__SHIRO_CYCLE_ID__);
+                console.log('[Debug] Cycle stopped.');
+                initTheme();
+            }
+        },
+        
+        // Enable/disable debug mode
+        enable() {
+            window.__SHIRO_DEBUG__ = true;
+            console.log('[Debug] Debug mode enabled.');
+            this.getSolarTerm();
+        },
+        
+        disable() {
+            window.__SHIRO_DEBUG__ = false;
+            console.log('[Debug] Debug mode disabled.');
+        }
+    };
+
+    // Auto-enable debug in development (localhost)
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        window.shiroDebug.enable();
+    }
 
     // ========== Dark Mode Toggle (seal button) ==========
     const DARK_KEY = 'shiro-dark-mode';
@@ -172,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setDark(!isDark());
     }
 
-    // Init: localStorage > prefers-color-scheme > time (20:00-07:00 dark). Time-based does not persist.
+    // Init: localStorage > prefers-color-scheme > time (19:00-07:00 dark). Time-based does not persist.
     (function initDark() {
         const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(DARK_KEY) : null;
         if (stored === '1') setDark(true);
@@ -184,11 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (light) setDark(false, false);
             else {
                 const h = new Date().getHours();
-                setDark(h >= 20 || h < 7, false);
+                setDark(h >= 19 || h < 7, false);
             }
         } else {
             const h = new Date().getHours();
-            setDark(h >= 20 || h < 7, false);
+            setDark(h >= 19 || h < 7, false);
         }
     })();
 
@@ -247,21 +474,81 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tocBtn && tocPanel && tocFabGroup) {
         const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+        // Hover expand logic: only tocFab triggers expand, group mouseleave collapses
+        tocBtn.addEventListener('mouseenter', () => {
+            tocFabGroup.classList.add('expanded');
+        });
+        tocFabGroup.addEventListener('mouseleave', () => {
+            tocFabGroup.classList.remove('expanded');
+        });
+
         // Positioning: keep the FAB fixed to the viewport but aligned to the right edge of the main 'paper' container.
         const paperEl = document.querySelector('.paper');
 
         // Progress ring
         const progressRing = tocBtn.querySelector('.toc-progress-ring-fill');
+        const tocFabIcon = tocBtn.querySelector('.toc-icon');
         const circumference = 2 * Math.PI * 15; // r=15
+        let fontsReady = false;
 
         function updateReadingProgress() {
-            if (!progressRing) return;
             const scrollTop = window.scrollY || document.documentElement.scrollTop;
             const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
             const progress = docHeight > 0 ? scrollTop / docHeight : 0;
-            const offset = circumference - (progress * circumference);
-            progressRing.style.strokeDashoffset = offset;
+
+            if (progressRing) {
+                const offset = circumference - (progress * circumference);
+                progressRing.style.strokeDashoffset = offset;
+            }
+
+            // 阅读到底后，中心图标变为「完」字（完読＝读完），字体与印章/标题一致（Yuji Syuku 等）
+            // 仅在字体加载完成后更新文字，避免字体闪烁
+            if (tocFabIcon && fontsReady) {
+                if (progress >= 0.9) {
+                    tocFabIcon.textContent = '完';
+                    tocFabIcon.classList.add('toc-icon--read');
+                } else if (progress >= 0.4 && progress < 0.6) {
+                    tocFabIcon.textContent = '半';
+                    tocFabIcon.classList.add('toc-icon--read');
+                } else if (progress >= 0.1 && progress < 0.2) {
+                    tocFabIcon.textContent = '始';
+                    tocFabIcon.classList.add('toc-icon--read');
+                } else {
+                    tocFabIcon.textContent = '☰';
+                    tocFabIcon.classList.remove('toc-icon--read');
+                }
+            }
         }
+        
+        // Wait for fonts to load before updating text
+        function waitForFonts(callback) {
+            if (document.fonts && document.fonts.load) {
+                const fonts = ['1em "Yuji Syuku"', '1em "Cardo"', '1em "Noto Serif SC"'];
+                Promise.all(fonts.map(f => document.fonts.load(f).catch(() => true)))
+                    .then(() => {
+                        fontsReady = true;
+                        document.documentElement.classList.add('fonts-loaded');
+                        callback();
+                    })
+                    .catch(() => {
+                        fontsReady = true;
+                        document.documentElement.classList.add('fonts-loaded');
+                        callback();
+                    });
+            } else {
+                fontsReady = true;
+                document.documentElement.classList.add('fonts-loaded');
+                callback();
+            }
+        }
+        
+        waitForFonts(() => {
+            // Set default icon after fonts loaded
+            if (tocFabIcon && !tocFabIcon.textContent) {
+                tocFabIcon.textContent = '☰';
+            }
+            updateReadingProgress();
+        });
 
         function updateFabPosition() {
             try {
@@ -271,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // fallback: keep 1rem from viewport right
                     tocFabGroup.style.right = '1rem';
                     tocPanel.style.right = '1rem';
+                    tocFabGroup.classList.remove('toc-fab-unpositioned');
                     return;
                 }
 
@@ -321,30 +609,64 @@ document.addEventListener('DOMContentLoaded', () => {
                     // keep overlay fixed to viewport to cover entire screen for easier click-to-close
                     tocOverlay.style.position = 'fixed';
                 }
+
+                // 首次定位完成后才显示，避免先出现在视口右下角再跳动
+                tocFabGroup.classList.remove('toc-fab-unpositioned');
             } catch (e) {
                 // ignore positioning errors
             }
         }
 
-        // update on load/resize/scroll
+        // TOC scroll-spy: highlight the item for the section currently in view
+        const tocLinks = tocPanel.querySelectorAll('.toc a[href^="#"]');
+        const articleEl = document.querySelector('.prose-shiro') || document.querySelector('.content-article');
+
+        function updateTocActive() {
+            if (!articleEl || tocLinks.length === 0) return;
+            const headings = articleEl.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+            if (headings.length === 0) return;
+            const threshold = 120; // px from top of viewport: heading "current" when above this
+            let currentId = null;
+            for (let i = 0; i < headings.length; i++) {
+                const top = headings[i].getBoundingClientRect().top;
+                if (top <= threshold) currentId = headings[i].id;
+            }
+            tocLinks.forEach((a) => {
+                const href = a.getAttribute('href') || '';
+                const id = href === '#' ? '' : href.slice(1);
+                if (id === currentId) {
+                    a.classList.add('toc-active');
+                    a.setAttribute('aria-current', 'location');
+                } else {
+                    a.classList.remove('toc-active');
+                    a.removeAttribute('aria-current');
+                }
+            });
+        }
+
+        // update on load/resize/scroll（load 时再算一次；scroll 用 rAF 节流，一帧只算一次）
         window.addEventListener('resize', updateFabPosition, { passive: true });
+        window.addEventListener('load', updateFabPosition);
+        let scrollRaf = null;
         window.addEventListener('scroll', () => {
-            updateFabPosition();
-            updateReadingProgress();
+            if (scrollRaf != null) return;
+            scrollRaf = requestAnimationFrame(() => {
+                updateFabPosition();
+                updateReadingProgress();
+                updateTocActive();
+                scrollRaf = null;
+            });
         }, { passive: true });
         // run once now
         updateFabPosition();
         updateReadingProgress();
+        updateTocActive();
 
         function setTocOpen(open) {
             tocPanel.dataset.open = open ? "true" : "false";
             if (tocOverlay) tocOverlay.dataset.open = open ? "true" : "false";
             tocBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
             tocPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
-            // simple transform for icon (no chevron here) - keep accessible
-            if (!prefersReduced) {
-                // no visual icon rotation needed for this icon
-            }
         }
 
         tocBtn.addEventListener('click', (e) => {
@@ -375,18 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
             });
         }
-
-        // Helper: extract code with preserved newlines (shared)
-        const extractCode = (preEl) => {
-            const lines = preEl.querySelectorAll('.line');
-            if (lines.length > 0) {
-                return Array.from(lines).map(l => l.textContent).join('\n');
-            }
-            const html = preEl.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            return div.textContent || preEl.textContent;
-        };
 
         // Helper: convert table to markdown (shared)
         const extractTable = (tableEl) => {
@@ -430,12 +740,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (tag === 'table' && !child.closest('.highlight')) {
                             result += extractTable(child);
                         } else if (tag === 'pre') {
-                            const code = extractCode(child).trim();
+                            const code = getCodeFromPre(child).trim();
                             result += `\n\n\`\`\`\n${code}\n\`\`\`\n\n`;
                         } else if (child.classList?.contains('highlight')) {
                             const pre = child.querySelector('pre');
                             if (pre) {
-                                const code = extractCode(pre).trim();
+                                const code = getCodeFromPre(pre).trim();
                                 result += `\n\n\`\`\`\n${code}\n\`\`\`\n\n`;
                             }
                         } else if (tag === 'code' && child.parentElement?.tagName.toLowerCase() !== 'pre') {
@@ -520,20 +830,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btn.onclick = async () => {
             try {
-                const codePre = block.querySelector('.code pre') || block.querySelector('.highlight pre');
-                let code = '';
-                if (codePre) {
-                    const lines = codePre.querySelectorAll('.line');
-                    if (lines.length) {
-                        code = Array.from(lines).map(l => l.textContent).join('\n');
-                    } else {
-                        const html = codePre.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-                        const div = document.createElement('div');
-                        div.innerHTML = html;
-                        code = div.textContent || '';
-                    }
-                }
-                if (!code) code = block.querySelector('pre')?.textContent || '';
+                const codePre = block.querySelector('.code pre') || block.querySelector('.highlight pre') || block.querySelector('pre');
+                const code = getCodeFromPre(codePre) || block.querySelector('pre')?.textContent || '';
                 await navigator.clipboard.writeText(code);
                 btn.textContent = '✓';
                 btn.classList.add('copied');
