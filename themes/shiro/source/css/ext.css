@@ -65,13 +65,15 @@
     opacity: 0;
 }
 
-#tocFabGroup:hover .toc-extra-btn {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn,
+#tocFabGroup.expanded .toc-extra-btn {
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
 }
 
-#tocFabGroup:hover .toc-extra-btn:disabled {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:disabled,
+#tocFabGroup.expanded .toc-extra-btn:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
@@ -82,10 +84,14 @@
 #tocFabGroup .toc-extra-btn:nth-child(3) { transition-delay: 0.03s; }
 #tocFabGroup .toc-extra-btn:nth-child(4) { transition-delay: 0s; }
 
-#tocFabGroup:hover .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(1),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(2),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(3),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(4),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
 
 .dark .toc-extra-btn {
     background: #3a3632;
@@ -234,26 +240,75 @@ footer span[aria-label="love"] svg {
     border-color: rgba(120, 113, 108, 0.35);
 }
 
-/* Table: thead 顶部边框、最后一行底部边框 */
-.prose-shiro thead th {
-    border-top: 1px solid var(--tw-prose-th-borders);
-}
-.prose-shiro tbody tr:last-child td {
-    border-bottom: 1px solid var(--tw-prose-td-borders);
-}
-
-/* Table: 移动端横向滚动，防止撑出容器 */
+/* Table: 基础样式优化 */
 .prose-shiro table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
+    border-collapse: collapse;
+    border-radius: 8px;
+    font-size: 0.9em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* Table: 表头样式 */
+.prose-shiro thead {
+    background-color: var(--color-slate-50);
+}
+
+.prose-shiro thead th {
+    border-top: 1px solid var(--tw-prose-th-borders);
+    border-bottom: 2px solid var(--tw-prose-th-borders);
+    padding: 0.75em 1em;
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-slate-700);
+}
+
+/* Table: 单元格样式 */
+.prose-shiro td {
+    padding: 0.65em 1em;
+    border-bottom: 1px solid var(--tw-prose-td-borders);
+    vertical-align: top;
+}
+
+/* Table: 行样式 */
+.prose-shiro tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.prose-shiro tbody tr:hover {
+    background-color: var(--color-slate-50);
+}
+
+.prose-shiro tbody tr:last-child td {
+    border-bottom: 1px solid var(--tw-prose-td-borders);
+}
+
+/* Table: 暗色模式 */
+.dark .prose-shiro thead {
+    background-color: rgba(87, 83, 78, 0.3);
+}
+
+.dark .prose-shiro thead th {
+    color: #d4d0c4;
+}
+
+.dark .prose-shiro tbody tr:hover {
+    background-color: rgba(87, 83, 78, 0.2);
+}
+
+/* Table: 桌面端恢复 */
 @media (min-width: 768px) {
     .prose-shiro table {
         display: table;
         overflow-x: visible;
+        white-space: normal;
+        width: 100%;
+    }
+    
+    .prose-shiro td {
         white-space: normal;
     }
 }

@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setDark(!isDark());
     }
 
-    // Init: localStorage > prefers-color-scheme > time (20:00-07:00 dark). Time-based does not persist.
+    // Init: localStorage > prefers-color-scheme > time (19:00-07:00 dark). Time-based does not persist.
     (function initDark() {
         const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(DARK_KEY) : null;
         if (stored === '1') setDark(true);
@@ -184,11 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (light) setDark(false, false);
             else {
                 const h = new Date().getHours();
-                setDark(h >= 20 || h < 7, false);
+                setDark(h >= 19 || h < 7, false);
             }
         } else {
             const h = new Date().getHours();
-            setDark(h >= 20 || h < 7, false);
+            setDark(h >= 19 || h < 7, false);
         }
     })();
 
@@ -246,6 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tocBtn && tocPanel && tocFabGroup) {
         const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Hover expand logic: only tocFab triggers expand, group mouseleave collapses
+        tocBtn.addEventListener('mouseenter', () => {
+            tocFabGroup.classList.add('expanded');
+        });
+        tocFabGroup.addEventListener('mouseleave', () => {
+            tocFabGroup.classList.remove('expanded');
+        });
 
         // Positioning: keep the FAB fixed to the viewport but aligned to the right edge of the main 'paper' container.
         const paperEl = document.querySelector('.paper');

@@ -70,11 +70,7 @@
     }
 
     html {
-        color-scheme: light;
-    }
-
-    html.dark {
-        color-scheme: dark;
+        color-scheme: light dark;
     }
 
     body {
