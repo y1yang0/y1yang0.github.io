@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&family=Cascadia+Code:wght@400;500;600&family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+JP:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&family=Shippori+Mincho:wght@400;500;600&family=Spectral:wght@400;500;600&family=Yuji+Boku&family=Yuji+Syuku&family=Zen+Old+Mincho:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&family=Fira+Code:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&family=Yuji+Syuku&display=swap");
 @import 'tailwindcss';
 
 @plugin "@tailwindcss/typography";
@@ -20,10 +20,9 @@
     --color-scrollbar-thumb-hover: rgba(43, 48, 54, 0.5);
     --color-scrollbar-border: rgba(43, 48, 54, 0.16);
 
-    --font-code: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
-    --font-serif: 'Cardo', 'Spectral', 'Zen Old Mincho', 'Shippori Mincho',
-    'Noto Serif JP', 'Noto Serif SC', serif;
-    --font-title: 'Yuji Syuku', 'Yuji Boku', 'Zen Old Mincho', 'Noto Serif JP', serif;
+    --font-code: 'Fira Code', ui-monospace, monospace;
+    --font-serif: 'Cardo', 'Noto Serif SC', serif;
+    --font-title: 'Yuji Syuku', serif;
 
     --shadow-paper: 0 1px 1px rgba(16, 24, 40, 0.06), 0 10px 30px rgba(16, 24, 40, 0.08),
     0 35px 70px rgba(16, 24, 40, 0.06);
@@ -37,6 +36,11 @@
 }
 
 @layer base {
+    /* Font display strategy: swap to prevent invisible text during load */
+    * {
+        font-display: swap;
+    }
+    
     ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
@@ -70,11 +74,7 @@
     }
 
     html {
-        color-scheme: light;
-    }
-
-    html.dark {
-        color-scheme: dark;
+        color-scheme: light dark;
     }
 
     body {
@@ -407,8 +407,9 @@
         @apply w-7 min-w-7 select-none border-r border-slate-200 dark:border-slate-500/50 bg-slate-100 dark:bg-[#36322e] text-right text-slate-400 dark:text-[#a89984] text-xs;
     }
 
+    /* prose 默认给 pre 上下 padding；leading-relaxed 半行距在块首尾会像多半行空白 */
     .prose-shiro .highlight pre {
-        @apply m-0 bg-transparent text-sm leading-relaxed text-inherit;
+        @apply m-0 p-0 bg-transparent text-sm leading-normal text-inherit;
     }
 
     .prose-shiro code {
@@ -435,4 +436,35 @@
     .max-w-divider {
         max-width: 120px;
     }
+}
+
+/* ========== Solar Terms & Festival Theme ========== */
+/* Paper border - thicker and colored for solar term/festival */
+body.festival-bg .paper {
+    border-color: color-mix(in srgb, var(--color-seal) 35%, rgba(17, 24, 39, 0.06));
+    box-shadow: 
+        0 1px 1px color-mix(in srgb, var(--color-seal) 8%, rgba(16, 24, 40, 0.06)),
+        0 10px 30px color-mix(in srgb, var(--color-seal) 5%, rgba(16, 24, 40, 0.08)),
+        0 35px 70px color-mix(in srgb, var(--color-seal) 3%, rgba(16, 24, 40, 0.06));
+}
+
+/* Dark mode adjustments */
+.dark.festival-bg .paper {
+    border-color: color-mix(in srgb, var(--color-seal) 50%, rgba(120, 113, 108, 0.3));
+}
+
+/* Link colors */
+body.festival-bg .link-muted:hover {
+    color: var(--color-seal);
+}
+
+/* TOC active item */
+body.festival-bg #tocPanel .toc a.toc-active {
+    border-left-color: var(--color-seal);
+    background: color-mix(in srgb, var(--color-seal) 10%, rgba(15, 23, 42, 0.08));
+}
+
+.dark.festival-bg #tocPanel .toc a.toc-active {
+    border-left-color: color-mix(in srgb, var(--color-seal) 80%, #e8e4d9);
+    background: color-mix(in srgb, var(--color-seal) 15%, rgba(232, 228, 217, 0.12));
 }

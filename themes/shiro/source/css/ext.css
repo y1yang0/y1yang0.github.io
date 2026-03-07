@@ -28,7 +28,11 @@
                 var(--festival-bg-dark, #2d2a26);
 }
 
-/* TOC button group */
+/* TOC button group：未定位前不显示，避免先出现在视口右下角再跳到 paper 旁 */
+#tocFabGroup.toc-fab-unpositioned {
+    opacity: 0;
+    pointer-events: none;
+}
 #tocFabGroup {
     position: fixed;
     right: 1rem;
@@ -65,13 +69,15 @@
     opacity: 0;
 }
 
-#tocFabGroup:hover .toc-extra-btn {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn,
+#tocFabGroup.expanded .toc-extra-btn {
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
 }
 
-#tocFabGroup:hover .toc-extra-btn:disabled {
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:disabled,
+#tocFabGroup.expanded .toc-extra-btn:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
@@ -82,10 +88,14 @@
 #tocFabGroup .toc-extra-btn:nth-child(3) { transition-delay: 0.03s; }
 #tocFabGroup .toc-extra-btn:nth-child(4) { transition-delay: 0s; }
 
-#tocFabGroup:hover .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
-#tocFabGroup:hover .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(1),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(1) { transition-delay: 0s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(2),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(2) { transition-delay: 0.03s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(3),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(3) { transition-delay: 0.06s; }
+#tocFabGroup:has(#tocFab:hover) .toc-extra-btn:nth-child(4),
+#tocFabGroup.expanded .toc-extra-btn:nth-child(4) { transition-delay: 0.09s; }
 
 .dark .toc-extra-btn {
     background: #3a3632;
@@ -114,16 +124,18 @@
     padding: 0;
     flex-shrink: 0;
 }
-#tocFab svg { width: 20px; height: 20px; }
+/* 仅缩小按钮内非进度环的 svg（如未来有图标 svg 时），进度环保持与按钮同大 */
+#tocFab svg:not(.toc-progress-ring) { width: 20px; height: 20px; }
 #tocFab:focus { outline: 2px solid rgba(96,165,250,0.7); outline-offset: 2px; }
 
-/* TOC progress ring */
+/* TOC progress ring：铺满整个按钮，避免与按钮错位 */
 #tocFab .toc-progress-ring {
     position: absolute;
-    width: 35px;
-    height: 35px;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    inset: 0;
 }
 
 #tocFab .toc-progress-ring-fill {
@@ -136,6 +148,38 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    /* Fallback: show after 1.5s if JS doesn't trigger fonts-loaded */
+    animation: toc-icon-fade-in 0.3s ease 1.5s forwards;
+}
+
+@keyframes toc-icon-fade-in {
+    to {
+        opacity: 1;
+    }
+}
+
+/* When fonts are loaded, show immediately */
+.fonts-loaded #tocFab .toc-icon {
+    opacity: 1;
+    animation: none;
+}
+
+/* Show immediately on touch devices or if reduced motion */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+    #tocFab .toc-icon {
+        opacity: 1;
+        animation: none;
+    }
+}
+
+/* 阅读完成后显示「完」字，与印章/标题同字体（Yuji Syuku 等） */
+#tocFab .toc-icon.toc-icon--read {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.05em;
+    letter-spacing: 0.02em;
 }
 
 .dark #tocFab {
@@ -199,6 +243,22 @@
 #tocPanel .toc > ol,
 #tocPanel .toc > ul { padding-left: 0; }
 
+/* TOC 当前浏览段落高亮 */
+#tocPanel .toc a.toc-active {
+    font-weight: 700;
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 6px;
+    padding: 0.2em 0.5em;
+    margin: 0 -0.5em;
+    border-left: 3px solid #0f172a;
+}
+.dark #tocPanel .toc a.toc-active {
+    color: #e8e4d9;
+    background: rgba(232, 228, 217, 0.12);
+    border-left-color: #e8e4d9;
+}
+
 /* Content width */
 .prose-shiro {
     width: 100%;
@@ -227,33 +287,82 @@ footer span[aria-label="love"] svg {
 
 /* Images: 轻微边框 */
 .prose-shiro img {
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(15, 23, 42, 0.1);
     border-radius: 4px;
 }
 .dark .prose-shiro img {
-    border-color: rgba(120, 113, 108, 0.35);
+    border-color: rgba(120, 113, 108, 0.45);
 }
 
-/* Table: thead 顶部边框、最后一行底部边框 */
-.prose-shiro thead th {
-    border-top: 1px solid var(--tw-prose-th-borders);
-}
-.prose-shiro tbody tr:last-child td {
-    border-bottom: 1px solid var(--tw-prose-td-borders);
-}
-
-/* Table: 移动端横向滚动，防止撑出容器 */
+/* Table: 基础样式优化 */
 .prose-shiro table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
+    border-collapse: collapse;
+    border-radius: 8px;
+    font-size: 0.9em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* Table: 表头样式 */
+.prose-shiro thead {
+    background-color: var(--color-slate-50);
+}
+
+.prose-shiro thead th {
+    border-top: 1px solid var(--tw-prose-th-borders);
+    border-bottom: 2px solid var(--tw-prose-th-borders);
+    padding: 0.75em 1em;
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-slate-700);
+}
+
+/* Table: 单元格样式 */
+.prose-shiro td {
+    padding: 0.65em 1em;
+    border-bottom: 1px solid var(--tw-prose-td-borders);
+    vertical-align: top;
+}
+
+/* Table: 行样式 */
+.prose-shiro tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.prose-shiro tbody tr:hover {
+    background-color: var(--color-slate-50);
+}
+
+.prose-shiro tbody tr:last-child td {
+    border-bottom: 1px solid var(--tw-prose-td-borders);
+}
+
+/* Table: 暗色模式 */
+.dark .prose-shiro thead {
+    background-color: rgba(87, 83, 78, 0.3);
+}
+
+.dark .prose-shiro thead th {
+    color: #d4d0c4;
+}
+
+.dark .prose-shiro tbody tr:hover {
+    background-color: rgba(87, 83, 78, 0.2);
+}
+
+/* Table: 桌面端恢复 */
 @media (min-width: 768px) {
     .prose-shiro table {
         display: table;
         overflow-x: visible;
+        white-space: normal;
+        width: 100%;
+    }
+    
+    .prose-shiro td {
         white-space: normal;
     }
 }
@@ -278,6 +387,22 @@ footer span[aria-label="love"] svg {
 .prose-shiro .highlight table {
     table-layout: fixed;
 }
+
+/* Typography 会给 tbody td 加 padding、baseline 对齐；在 highlight 的 table 里会残留一点上下空隙 */
+.prose-shiro .highlight table td {
+    padding: 0 !important;
+    vertical-align: top;
+}
+
+.prose-shiro .highlight tbody tr {
+    border-bottom-width: 0 !important;
+}
+
+/* 代码列左侧留白（全表 td 曾用 padding:0 压 typography，这里单独补回） */
+.prose-shiro .highlight td.code {
+    padding-left: 0.75rem !important;
+}
+
 .prose-shiro .highlight td.gutter {
     width: 1.25rem !important;
     min-width: 1.25rem !important;
@@ -289,6 +414,11 @@ footer span[aria-label="love"] svg {
 .prose-shiro .highlight td.gutter pre {
     padding: 0 !important;
     overflow: hidden !important;
+}
+
+/* 文章里 .prose-shiro code 有 padding-inline，会盖过 typography 的 pre code 归零 */
+.prose-shiro .highlight pre code {
+    padding: 0 !important;
 }
 
 /* 移动端隐藏行号，避免左右滑动 */
@@ -448,4 +578,10 @@ footer span[aria-label="love"] svg {
 .prose-shiro .highlight .hljs-deletion {
     color: #b31d28 !important;
     background-color: #ffeef0 !important;
+}
+
+/* Inline code: 防止长代码溢出容器 */
+.prose-shiro code {
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
