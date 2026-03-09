@@ -1,3 +1,8 @@
+/* Page zoom - similar to browser zoom */
+html {
+    zoom: 1.1;
+}
+
 /* Seal spin animation (click to toggle dark mode) */
 @keyframes seal-spin {
     from { transform: rotate(0deg); }
@@ -102,53 +107,77 @@
 
 .toc-extra-btn:focus { outline: 2px solid rgba(96,165,250,0.7); outline-offset: 2px; }
 
-/* TOC button */
+/* TOC button - Scholar Logo style */
 #tocFab {
     position: relative;
-    width: 35px;
-    height: 35px;
+    width: 48px;
+    height: 48px;
     border-radius: 9999px;
-    background: #ffffff;
-    color: #0f172a;
+    background: transparent;
+    color: #3b5998;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 18px rgba(2,6,23,0.12);
-    border: 1px solid rgba(15,23,42,0.06);
+    box-shadow: none;
+    border: none;
     cursor: pointer;
-    transition: opacity 0.15s ease;
+    transition: transform 0.2s ease, opacity 0.15s ease;
     padding: 0;
     flex-shrink: 0;
 }
-#tocFab svg { width: 20px; height: 20px; }
+#tocFab:hover {
+    transform: scale(1.08);
+}
 #tocFab:focus { outline: 2px solid rgba(96,165,250,0.7); outline-offset: 2px; }
+
+/* Scholar logo image */
+#tocFab .toc-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 9999px;
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+    transition: filter 0.2s ease;
+}
+#tocFab:hover .toc-logo {
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
+}
 
 /* TOC progress ring */
 #tocFab .toc-progress-ring {
     position: absolute;
-    width: 35px;
-    height: 35px;
+    width: 48px;
+    height: 48px;
     top: 0;
     left: 0;
 }
 
 #tocFab .toc-progress-ring-fill {
     transition: stroke-dashoffset 0.1s ease-out;
+    stroke: #3b5998;
 }
 
-#tocFab .toc-icon {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+#tocFab .toc-progress-ring-bg {
+    stroke: #3b5998;
 }
 
 .dark #tocFab {
-    background: #3a3632;
-    color: #d4d0c4;
-    border-color: rgba(120,113,108,0.35);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    color: #6b8cce;
+}
+
+.dark #tocFab .toc-progress-ring-fill,
+.dark #tocFab .toc-progress-ring-bg {
+    stroke: #6b8cce;
+}
+
+.dark #tocFab .toc-logo {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+}
+
+.dark #tocFab:hover .toc-logo {
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
 }
 
 /* TOC panel */
@@ -233,11 +262,11 @@ footer span[aria-label="love"] svg {
 
 /* Images: 轻微边框 */
 .prose-shiro img {
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(15, 23, 42, 0.1);
     border-radius: 4px;
 }
 .dark .prose-shiro img {
-    border-color: rgba(120, 113, 108, 0.35);
+    border-color: rgba(120, 113, 108, 0.45);
 }
 
 /* Table: 基础样式优化 */
@@ -503,4 +532,10 @@ footer span[aria-label="love"] svg {
 .prose-shiro .highlight .hljs-deletion {
     color: #b31d28 !important;
     background-color: #ffeef0 !important;
+}
+
+/* Inline code: 防止长代码溢出容器 */
+.prose-shiro code {
+    overflow-wrap: break-word;
+    word-break: break-word;
 }

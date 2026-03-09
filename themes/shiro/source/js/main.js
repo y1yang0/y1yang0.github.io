@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Progress ring
         const progressRing = tocBtn.querySelector('.toc-progress-ring-fill');
-        const circumference = 2 * Math.PI * 15; // r=15
+        const circumference = 2 * Math.PI * 22; // r=22 for scholar logo button
 
         function updateReadingProgress() {
             if (!progressRing) return;
