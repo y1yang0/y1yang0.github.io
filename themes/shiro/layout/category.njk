@@ -1,43 +1,8 @@
 {% extends "_layout.njk" %}
-{% import "_macro/ui.njk" as ui %}
-
+{% import "_macro/archive.njk" as archive with context %}
 {% block content %}
-<section class="section-shell">
-    {% if is_category() %}
-        {% import "_macro/archive.njk" as archive with context %}
-        {% set cat = site.categories.findOne({name: page.category}) %}
-        {% if cat and cat.posts.length > 0 %}
-            {{ archive.render_list(cat.posts.sort('date', -1)) }}
-        {% else %}
-            {% include "_partial/common/empty.njk" %}
-        {% endif %}
-    {% else %}
-        {% if site.categories.length > 0 %}
-            <div class="space-y-16 max-w-2xl mx-auto">
-                {% for cat in site.categories.toArray() %}
-                <div id="cat-{{ cat.name }}" class="scroll-mt-24">
-                    <h2 class="section-heading">
-                        {{ ui.icon_folder() }}
-                        {{ cat.name }}
-                    </h2>
-                    <div class="space-y-4">
-                        {% for post in cat.posts.sort('date', -1).toArray() %}
-                        <article class="archive-item group">
-                            <time datetime="{{ date(post.date, 'YYYY/MM/DD') }}" class="archive-date">
-                                {{ date(post.date, 'YYYY/MM/DD') }}
-                            </time>
-                            <h3 class="archive-title">
-                                <a href="{{ url_for(post.path) }}" class="link-underline">{{ post.title }}</a>
-                            </h3>
-                        </article>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            {% include "_partial/common/empty.njk" %}
-        {% endif %}
-    {% endif %}
+<section class="archive-page"><header class="section-intro"><div><p class="eyebrow">Notes by subject</p><h1>{% if is_category() %}{{ page.category }}{% else %}Topics{% endif %}</h1></div><a class="text-link" href="{{ url_for('/') }}#writing">← All writing</a></header>
+<nav class="topic-nav" aria-label="Topics">{% for cat in site.categories.sort('name', 1).toArray() %}<a href="{{ url_for(cat.path) }}"{% if page.category == cat.name %} aria-current="page" class="selected"{% endif %}>{% if cat.parent %}{{ site.categories.findOne({_id: cat.parent}).name }} / {% endif %}{{ cat.name }} <span>{{ cat.posts.length }}</span></a>{% endfor %}</nav>
+{% if is_category() %}{{ archive.render_list(page.posts.sort('date', -1)) }}{% include "_partial/common/pagination.njk" %}{% else %}{% for cat in site.categories.sort('name', 1).toArray() %}<section class="topic-group"><h2><a href="{{ url_for(cat.path) }}">{% if cat.parent %}{{ site.categories.findOne({_id: cat.parent}).name }} / {% endif %}{{ cat.name }}</a></h2>{% for post in cat.posts.sort('date', -1).toArray() %}<article class="archive-entry"><time datetime="{{ date(post.date, 'YYYY-MM-DD') }}">{{ date(post.date, 'YYYY.MM.DD') }}</time><h3><a href="{{ url_for(post.path) }}">{{ post.title }}</a></h3><a class="archive-open" href="{{ url_for(post.path) }}" aria-label="Read {{ post.title }}"><span aria-hidden="true">→</span></a></article>{% endfor %}</section>{% endfor %}{% endif %}
 </section>
 {% endblock %}

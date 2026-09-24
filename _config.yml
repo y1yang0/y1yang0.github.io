@@ -5,7 +5,7 @@
 # Site
 title: '楊易'
 subtitle: 'Yi Yang'
-description: 'Yi Yang - JVM Engineer, OpenJDK Committer. Personal blog about JVM, Go, and software engineering.'
+description: 'Personal notes on JVM, compilers, Go, and software engineering.'
 keywords: ['JVM', 'OpenJDK', 'Go', 'software engineering', 'blog']
 author: Yi Yang
 language: en
@@ -28,7 +28,7 @@ archive_dir: archives
 category_dir: categories
 code_dir: downloads/code
 i18n_dir: :lang
-skip_render:
+skip_render: []
 
 # Writing
 new_post_name: :title.md # File name of new posts

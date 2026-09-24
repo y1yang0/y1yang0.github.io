@@ -1,30 +1,15 @@
-{% import "_macro/ui.njk" as ui %}
-
 {% macro render_list(posts) %}
-    <div class="space-y-16 max-w-2xl mx-auto">
-        {% set currentYear = "" %}
-        {% for post in posts.toArray() %}
-            {% set postYear = date(post.date, 'YYYY') %}
-            {% if currentYear != postYear %}
-                {% if currentYear != "" %}</div></div>{% endif %}
-                {% set currentYear = postYear %}
-                <div class="relative">
-                    <h2 class="section-heading">
-                        {{ ui.icon_nav_arrow() }}
-                        {{ currentYear }}
-                    </h2>
-                    <div class="space-y-4">
-            {% endif %}
-            
-            <article class="archive-item group">
-                <time datetime="{{ date(post.date, 'YYYY/MM/DD') }}" class="archive-date">
-                    {{ date(post.date, 'YYYY/MM/DD') }}
-                </time>
-                <h3 class="archive-title">
-                    <a href="{{ url_for(post.path) }}" class="link-underline">{{ post.title }}</a>
-                </h3>
-            </article>
-        {% endfor %}
-        {% if currentYear != "" %}</div></div>{% endif %}
-    </div>
+<div class="archive-list">
+{% set currentYear = "" %}
+{% for post in posts.toArray() %}
+    {% set postYear = date(post.date, 'YYYY') %}
+    {% if currentYear != postYear %}
+        {% if currentYear != "" %}</div></section>{% endif %}
+        {% set currentYear = postYear %}
+        <section class="archive-year"><h2><span class="archive-year-label">{{ currentYear }}{% if currentYear == "2026" and is_archive() %}<sup class="archive-era-note" title="The AI era begins in 2026">AI era</sup>{% endif %}</span></h2><div>
+    {% endif %}
+    <article class="archive-entry"><time datetime="{{ date(post.date, 'YYYY-MM-DD') }}">{{ date(post.date, 'MMM DD') }}</time><h3><a href="{{ url_for(post.path) }}">{{ post.title }}</a></h3><a class="archive-open" href="{{ url_for(post.path) }}" aria-label="Read {{ post.title }}"><span aria-hidden="true">→</span></a></article>
+{% endfor %}
+{% if currentYear != "" %}</div></section>{% endif %}
+</div>
 {% endmacro %}

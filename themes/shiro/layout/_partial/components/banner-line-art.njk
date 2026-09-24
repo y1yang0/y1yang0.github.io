@@ -1,0 +1,44 @@
+{% macro lake_line() %}
+<svg class="banner-line-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 210" width="900" height="210" aria-hidden="true" focusable="false" fill="none" preserveAspectRatio="xMidYMax meet">
+    <g fill="var(--sage)">
+        <path opacity=".52" d="M46 135c47-4 62-37 94-34 29 3 43 24 68 18 39-9 69-59 104-47 29 10 52 61 83 58 33-3 56-42 88-34 29 7 42 29 67 27 36-4 56-51 92-43 34 8 46 49 88 51 32 1 61-32 95-21 21 7 39 26 65 28v26H46Z"/>
+        <path opacity=".8" d="M26 147c42-8 75-20 103-17 35 4 59 20 98 14 48-8 72-35 113-29 33 5 58 34 91 31 50-4 64-24 98-18 44 8 60 18 102 14 50-5 72-29 104-21 33 9 52 25 78 23 29-2 43-6 67 4v19H26Z"/>
+    </g>
+    <circle cx="647" cy="73" r="15" fill="var(--accent)" opacity=".78"/>
+    <g stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <path opacity=".25" d="M68 139c27-7 46-33 72-31 21 1 35 15 54 13m74-22c18-13 31-23 44-20 23 5 37 39 58 48m229-25c15-12 28-23 42-17 16 6 30 27 46 39"/>
+        <path opacity=".35" d="M35 157c79-9 145-4 219-2m100 3c51 1 94-6 145-4m164 4c67-5 125-3 199 2"/>
+        <path opacity=".2" d="M49 181h65m45-10h81m-32 24h41m93-23h53m14 23h89m72-19h63m76 21h71m34-24h50"/>
+    </g>
+
+    <!-- The bridge is drawn as two open arcs, leaving the lake underneath. -->
+    <g stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".62">
+        <path d="M123 161q72-63 144 0m-133-1q61-49 122 0"/>
+        <path d="m135 151-3-10m24-5-2-10m24 0-1-10m24 7v-10m23 14 2-10m18 22 3-10m-128 18q76-65 150 0"/>
+        <path d="M143 164h25m57 0h28" opacity=".6"/>
+    </g>
+
+    <!-- A few willow strands enter the frame without closing it. -->
+    <g stroke="var(--ink)" stroke-linecap="round" opacity=".55">
+        <path stroke-width="1.9" d="M18 153q29-56 20-123m-2 34q26-34 75-36m-73 21q-14-16-33-17"/>
+        <path stroke-width="1" d="M56 46q18 32 6 68m17-78q17 29 8 65m18-72q15 21 11 47m-80-6q22 18 17 57M22 40q-12 16-7 38"/>
+        <path stroke-width="1.3" d="m64 66 6 11m-2 13-6 11m28-45 6 10m-4 14-5 12m24-45 6 10m-1 10-5 10m-59 7 7 9m-2 14-5 9m-40-61-4 11"/>
+    </g>
+
+    <!-- The pagoda stays small in the distance, above the wooded shoreline. -->
+    <g stroke="var(--ink)" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" opacity=".62">
+        <path d="M762 135V82h16v53m-8-68v7m-11 7q7-2 11-8 4 6 11 8Zm-4 14q10-2 15-8 5 6 15 8Zm-3 15q12-2 18-9 6 7 18 9Zm-4 16q14-2 22-10 8 8 22 10Z"/>
+        <path d="M766 83v6m8-6v6m-8 9v6m8-6v6m-8 10v6m8-6v6m-21 16h34" opacity=".6"/>
+        <path d="M724 145q5-13 15-9 4-10 12-4m40 9q7-14 14-4 11-6 19 7" opacity=".55"/>
+    </g>
+
+    <g stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" opacity=".55">
+        <path d="m522 174 5-4 5 4-2 3v9h-6v-9Zm-2 13h14m-18 6h21m-10 4h13"/>
+        <path d="m574 164 4-3 4 3-1 2v8h-6v-8Zm-2 11h12m-16 6h20"/>
+        <path d="m632 178 5-4 5 4-2 3v9h-6v-9Zm-2 13h14m-18 6h22"/>
+        <path d="M369 177q18 6 37 0l-5 6h-27Zm10-1q0-13 9-15l8 15m-10-17v17m16-7 13 17m-46 4h33"/>
+    </g>
+    <path d="m422 76 5-2 5 2m24 12 4-2 4 2" stroke="var(--ink)" stroke-width="1.1" stroke-linecap="round" opacity=".28"/>
+    <path d="M16 205h868" stroke="var(--line)" stroke-width="1" opacity=".5"/>
+</svg>
+{% endmacro %}

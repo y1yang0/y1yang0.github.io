@@ -5,8 +5,7 @@ date: 2026-02-27
 categories: [AI]
 ---
 
-Recently, I implemented a so-called [ScholarEtude](https://github.com/y1yang0/scholar) minimal GPT model for learning purposes and trained it on
-a fairly small dataset. I want to share some notes and thoughts on the training process.
+Recently, I implemented a so-called [ScholarEtude](https://github.com/y1yang0/scholar) minimal GPT model for learning purposes and trained it on a fairly small dataset. I want to share some notes and thoughts on the training process.
 
 What's happening with AI right now makes me think of the prologue's opening line
 in [Red Dead Redemption 2](https://www.rockstargames.com/reddeadredemption2):

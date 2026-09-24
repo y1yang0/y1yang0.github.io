@@ -1,8 +1,17 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f1e8" />
     <script>
-        (function(){var k='shiro-dark-mode',v=localStorage.getItem(k);if(v==='1'){document.documentElement.classList.add('dark');return}if(v==='0')return;var m=window.matchMedia;if(m&&m('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark');return}if(m&&m('(prefers-color-scheme: light)').matches)return;var h=new Date().getHours();if(h>=22||h<7)document.documentElement.classList.add('dark')})();
+        (() => {
+            let theme = 'warm';
+            try {
+                const saved = localStorage.getItem('shiro-theme');
+                theme = ['warm', 'dark', 'white'].includes(saved) ? saved : localStorage.getItem('shiro-dark-mode') === '1' ? 'dark' : 'warm';
+            } catch (_) {}
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+        })();
     </script>
     <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
 
@@ -47,20 +56,15 @@
     <link rel="icon" href="{{ url_for(theme.site.favicon) }}" />
     {% endif %}
 
-    <!-- Preconnect to Google Fonts for faster loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Preload critical fonts to prevent FOUT -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/yujisyuku/v3/FwZY7-Q-xVAi_ljnQsmCp0muzQ.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="https://fonts.gstatic.com/s/notoserifsc/v22/H4c8BXePl9DZ0Xe7gG9cyOj7mnqFX1nH.woff2" as="font" type="font/woff2" crossorigin>
-
-    <!-- CSS -->
-    {% if page.layout === 'index' or page.layout === 'post' or page.layout === 'page' %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery.min.css">
+    <!-- Local type and journal styling keep first render independent of font CDNs. -->
+    {% if is_home() %}
+    <link rel="preload" href="{{ url_for('fonts/hero-yuji-syuku.woff2') }}" as="font" type="font/woff2" crossorigin>
     {% endif %}
-    <link rel="stylesheet" href="{{ url_for('css/style.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('css/ext.css') }}">
+    {% if has_gallery_images %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lg-zoom.min.css">
+    {% endif %}
+    <link rel="stylesheet" href="{{ journal_asset('css/journal.css') }}">
 
     <!-- Analytics -->
     {% include "../analytics/google.njk" %}

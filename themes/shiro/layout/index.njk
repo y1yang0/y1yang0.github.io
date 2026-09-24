@@ -1,18 +1,27 @@
 {% extends "_layout.njk" %}
-{% import "_macro/ui.njk" as ui %}
-
+{% from "_partial/components/banner-line-art.njk" import lake_line with context %}
 {% block content %}
-    {% if page.posts and page.posts.length > 0 %}
-    {% for post in page.posts.toArray() %}
-        {% include "_partial/components/post-card.njk" %}
-
-        {% if not loop.last %}
-            {{ ui.divider("my-8") }}
-        {% endif %}
-    {% endfor %}
-    {% else %}
-        {% include "_partial/common/empty.njk" %}
+{% if page.current == 1 %}
+<section class="journal-hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+        <h1 id="hero-title" lang="zh">楊 易</h1>
+        <p class="hero-motto" lang="zh">{{ theme.journal.motto }}</p>
+    </div>
+    <figure class="hero-landscape" aria-hidden="true">
+        {{ lake_line() }}
+    </figure>
+</section>
+{% endif %}
+<section id="writing" class="writing-section" aria-label="Blog posts">
+    {% if page.current > 1 %}<h1 class="visually-hidden">Blog posts — page {{ page.current }}</h1>{% endif %}
+    {% if site.categories.length %}
+    <nav class="topic-nav" aria-label="Browse writing by topic"><a class="selected" href="{{ url_for('/') }}#writing" aria-current="page">All notes <span>{{ site.posts.length }}</span></a>{% for cat in site.categories.sort('name', 1).toArray() %}{% if not cat.parent %}<a href="{{ url_for(cat.path) }}">{{ cat.name }} <span>{{ cat.posts.length }}</span></a>{% endif %}{% endfor %}</nav>
     {% endif %}
-
+    <div class="post-list">
+    {% if page.posts.length %}
+    {% for post in page.posts.toArray() %}{% include "_partial/components/post-card.njk" %}{% endfor %}
+    {% else %}{% include "_partial/common/empty.njk" %}{% endif %}
+    </div>
     {% include "_partial/common/pagination.njk" %}
+</section>
 {% endblock %}

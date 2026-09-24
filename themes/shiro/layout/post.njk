@@ -1,47 +1,17 @@
 {% extends "_layout.njk" %}
-{% from "_macro/ui.njk" import meta, render_tag with context %}
-
+{% from "_macro/ui.njk" import meta, render_tag, toc_button with context %}
 {% block content %}
-<article class="content-article">
-    <header class="text-center mb-8">
-        <h1 class="page-title mb-4">
-            {{ page.title }}
-        </h1>
-        {{ meta(page, true, "mb-4") }}
-    </header>
-
-    <div class="prose-shiro">
-        {{ page.content }}
+{% set article_toc = "" %}
+{% if theme.article.show_toc %}{% set article_toc = toc(page.content, {list_number: false}) %}{% endif %}
+<article class="content-article post-page{% if article_toc %} has-contents{% else %} no-contents{% endif %}">
+    <header class="article-header"><a class="eyebrow back-link" href="{{ url_for('/') }}#writing">← Back to the notebook</a><h1>{{ page.title }}</h1>{{ meta(page) }}</header>
+    <div class="reading-layout">
+        <div class="prose-shiro">{{ page.content }}</div>
+        {% if article_toc %}<aside class="article-index"><p class="eyebrow">Contents</p><nav aria-label="Table of contents">{{ article_toc }}</nav></aside>{% endif %}
     </div>
-
-    <!-- Tags -->
-    {% if page.tags and page.tags.length > 0 %}
-    <div class="mt-8 flex flex-wrap gap-2">
-        {% for tag in page.tags.toArray() %}
-        {{ render_tag(tag, false) }}
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Post Navigation -->
-    <div class="mt-12 pt-8 border-t border-slate-200/70 dark:border-slate-500/60 flex justify-between items-center text-sm md:text-base">
-        {% if page.prev %}
-        <a href="{{ url_for(page.prev.path) }}" class="post-nav-link group text-left">
-             <span aria-hidden="true">&larr;</span>
-             <span class="post-nav-title">{{ page.prev.title }}</span>
-        </a>
-        {% else %}
-        <div></div>
-        {% endif %}
-
-        {% if page.next %}
-        <a href="{{ url_for(page.next.path) }}" class="post-nav-link group text-right">
-            <span class="post-nav-title">{{ page.next.title }}</span>
-            <span aria-hidden="true">&rarr;</span>
-        </a>
-        {% endif %}
-    </div>
-
+    {% if page.tags.length %}<div class="post-tags">{% for tag in page.tags.toArray() %}{{ render_tag(tag) }}{% endfor %}</div>{% endif %}
+    {% if page.prev or page.next %}<nav class="post-navigation" aria-label="Adjacent notes">{% if page.prev %}<a class="post-newer" href="{{ url_for(page.prev.path) }}"><span>← Newer note</span><strong>{{ page.prev.title }}</strong></a>{% endif %}{% if page.next %}<a class="post-older" href="{{ url_for(page.next.path) }}"><span>Older note →</span><strong>{{ page.next.title }}</strong></a>{% endif %}</nav>{% endif %}
     {% include "_partial/comments/disqus.njk" %}
+    {% if theme.article.show_toc %}{{ toc_button(article_toc) }}{% endif %}
 </article>
 {% endblock %}

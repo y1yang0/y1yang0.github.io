@@ -57,3 +57,8 @@ excerpt:
     length: 200
   # Whether to display the "Read More" button
   show_read_more: true
+# Paper-and-ink journal homepage
+journal:
+  title: '写代码，'
+  title_accent: '也写下思考。'
+  description: 'Notes on software and the things learned along the way.'

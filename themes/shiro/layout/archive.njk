@@ -1,18 +1,8 @@
 {% extends "_layout.njk" %}
-
+{% import "_macro/archive.njk" as archive with context %}
 {% block content %}
-<section class="section-shell">
-    {% import "_macro/archive.njk" as archive with context %}
-    {% import "_macro/ui.njk" as ui %}
-
-    {% set posts = page.posts.sort('date', -1) %}
-
-    {% if posts.length > 0 %}
-        {{ archive.render_list(posts) }}
-    {% else %}
-        {% include "_partial/common/empty.njk" %}
-    {% endif %}
-
-    {% include "_partial/common/pagination.njk" %}
+<section class="archive-page"><header class="section-intro"><div><h1>{% if page.year %}{{ page.year }}{% if page.month %} / {{ page.month }}{% endif %}{% else %}Archives{% endif %}</h1></div><p>{{ page.posts.length }} {{ 'note' if page.posts.length == 1 else 'notes' }}{% if page.total > 1 %} on this page{% endif %}</p></header>
+{{ archive.render_list(page.posts.sort('date', -1)) }}
+{% include "_partial/common/pagination.njk" %}
 </section>
 {% endblock %}

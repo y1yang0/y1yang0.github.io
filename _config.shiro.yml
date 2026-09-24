@@ -8,7 +8,7 @@ menu:
 #    url: /categories
  - name: About
    url: /about
- - name: Github
+ - name: GitHub
    url: https://github.com/y1yang0
    # Open in new tab
    target: _blank
@@ -17,7 +17,7 @@ site:
   favicon: /favicon.svg
   # Whether to display the seal (stamp) in the header
   seal: true
-  seal_text: "𓄃"
+  seal_text: "楊"
   notetext: "文王拘而演周易 仲尼厄而作春秋"
   rss:
     enabled: false
@@ -46,3 +46,8 @@ excerpt:
     enabled: true
     length: 200
   show_read_more: false
+
+# Homepage copy; the name comes from author in _config.yml.
+journal:
+  motto: '致广大，尽精微。'
+  description: 'A personal notebook of things learned and thoughts in progress.'
