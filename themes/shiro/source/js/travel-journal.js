@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewerImage = document.getElementById('travelViewerImage');
     const viewerCaption = document.getElementById('travelViewerCaption');
     const viewerCounter = document.getElementById('travelViewerCounter');
+    const viewerStatus = document.getElementById('travelViewerStatus');
     const allCitiesButton = document.getElementById('travelAllCities');
     const svgNS = 'http://www.w3.org/2000/svg';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -51,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gallery = [];
     let viewerIndex = 0;
     let viewerTrigger = null;
+    let viewerRequest = 0;
+    let viewerLoader = null;
     const authoredBox = svg.viewBox.baseVal;
     let initialBox = [authoredBox.x, authoredBox.y, authoredBox.width, authoredBox.height];
     let view = [...initialBox];
@@ -74,6 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const entries = id => Array.isArray(record(id).entries) ? record(id).entries.filter(entry => entry && typeof entry === 'object') : [];
     const photos = entry => Array.isArray(entry.photos) ? entry.photos.filter(photo => photo && typeof photo.src === 'string') : [];
     const hasRecord = id => entries(id).length > 0;
+    const photoCount = id => entries(id).reduce((sum, entry) => sum + photos(entry).length, 0);
+    const maxPhotoCount = Math.max(1, ...Object.keys(journal.cities).map(photoCount));
+    // Match the server-rendered map so enabling interactions does not change its colors.
+    const photoWeight = id => {
+        const count = photoCount(id);
+        const weight = count ? 22 + (maxPhotoCount > 1 ? 58 * Math.log(count) / Math.log(maxPhotoCount) : 0) : 0;
+        return `${weight.toFixed(2)}%`;
+    };
+    const cityDescription = city => `${city.name}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
     const shortName = name => text(name).replace(/(?:特别行政区|自治州|地区|市)$/u, '');
     const make = (tag, className, content) => {
         const node = document.createElement(tag);
@@ -87,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return node;
     };
     const validImage = src => {
+        if (!text(src).trim()) return '';
         try {
             const url = new URL(src, document.baseURI);
             return ['http:', 'https:', 'file:'].includes(url.protocol) ? url.href : '';
@@ -105,10 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const recordedCities = cities.filter(city => hasRecord(city.id));
         albumCities.hidden = !recordedCities.length;
         albumCities.replaceChildren();
-        recordedCities.slice(0, 8).forEach(city => {
+        recordedCities.forEach(city => {
             const button = make('button', '', shortName(city.name));
             button.type = 'button';
             button.dataset.cityId = city.id;
+            button.setAttribute('aria-label', `${shortName(city.name)}，${photoCount(city.id)} 张照片`);
+            button.title = cityDescription(city);
             button.setAttribute('aria-pressed', String(city.id === activeId));
             button.addEventListener('click', () => selectCity(city.id, {scroll: true, focus: true}));
             albumCities.append(button);
@@ -176,9 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
         empty.hidden = !!notes.length;
         document.getElementById('travelActiveProvince').textContent = city.province || '中国';
         heading.textContent = shortName(city.name);
-        const photoCount = notes.reduce((sum, entry) => sum + photos(entry).length, 0);
+        const count = photoCount(city.id);
         document.getElementById('travelCityMeta').textContent = notes.length
-            ? (photoCount ? `${photoCount} 张照片` : `${notes.length} 次记录`)
+            ? (count ? `${count} 张照片` : `${notes.length} 次记录`)
             : '尚未记录';
         notes.forEach(entry => {
             const article = make('article', 'travel-entry');
@@ -190,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             photos(entry).forEach(photo => {
                 const src = validImage(photo.src);
                 if (!src) return;
+                const thumbnail = validImage(text(photo.thumbnail)) || src;
                 const figure = make('figure', 'travel-photo');
                 const button = make('button', 'travel-photo-open');
                 const image = make('img');
@@ -199,16 +215,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 image.alt = alt;
                 image.loading = 'lazy';
                 image.decoding = 'async';
+                if (photo.width > 0 && photo.height > 0) {
+                    image.width = photo.width;
+                    image.height = photo.height;
+                }
                 const index = gallery.length;
-                gallery.push({...photo, src, alt});
+                gallery.push({...photo, src, thumbnail, alt});
                 button.addEventListener('click', () => openViewer(index, button));
                 image.addEventListener('error', () => {
                     image.hidden = true;
-                    button.disabled = true;
                     button.classList.add('is-unavailable');
-                    button.append(make('span', 'travel-photo-error', '照片暂时无法载入'));
+                    button.append(make('span', 'travel-photo-error', '预览暂时无法载入，点击查看原图'));
                 }, {once: true});
-                image.src = src;
+                image.src = thumbnail;
                 button.append(image);
                 figure.append(button);
                 if (text(photo.caption)) figure.append(make('figcaption', '', photo.caption));
@@ -380,22 +399,59 @@ document.addEventListener('DOMContentLoaded', () => {
         if (focus) svg.focus({preventScroll: true});
     }
     allCitiesButton.addEventListener('click', () => showAtlas({scroll: true, focus: true}));
+    function cancelViewerLoad() {
+        viewerRequest += 1;
+        if (viewerLoader) {
+            viewerLoader.onload = null;
+            viewerLoader.onerror = null;
+            viewerLoader.removeAttribute('src');
+            viewerLoader = null;
+        }
+    }
     function viewerPhoto(index) {
         if (!gallery.length) return;
+        cancelViewerLoad();
+        const request = viewerRequest;
         viewerIndex = (index + gallery.length) % gallery.length;
         const photo = gallery[viewerIndex];
-        viewerImage.hidden = false;
         viewerImage.alt = photo.alt;
-        viewerImage.src = photo.src;
+        viewerImage.setAttribute('aria-busy', 'true');
+        viewerImage.hidden = photo.thumbnail === photo.src;
+        if (photo.thumbnail !== photo.src) viewerImage.src = photo.thumbnail;
+        else viewerImage.removeAttribute('src');
+        viewerStatus.textContent = '高清原图加载中…';
         viewerCaption.textContent = text(photo.caption) || photo.alt;
         viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}`;
         viewer.querySelectorAll('[data-prev-photo],[data-next-photo]').forEach(button => { button.disabled = gallery.length < 2; });
+        const original = new Image();
+        viewerLoader = original;
+        original.decoding = 'async';
+        original.onload = async () => {
+            // Decode before replacing the preview, and ignore a photo that was
+            // closed or superseded while its original was still downloading.
+            await original.decode().catch(() => {});
+            if (request !== viewerRequest || !viewer.open) return;
+            viewerImage.src = photo.src;
+            viewerImage.hidden = false;
+            viewerImage.setAttribute('aria-busy', 'false');
+            viewerStatus.textContent = '';
+            viewerLoader = null;
+        };
+        original.onerror = () => {
+            if (request !== viewerRequest || !viewer.open) return;
+            viewerImage.setAttribute('aria-busy', 'false');
+            viewerStatus.textContent = photo.thumbnail !== photo.src && !viewerImage.hidden
+                ? '高清原图暂时无法载入，可先查看预览。'
+                : '照片暂时无法载入，请稍后重试。';
+            viewerLoader = null;
+        };
+        original.src = photo.src;
     }
     function openViewer(index, trigger) {
         if (!viewer || !gallery[index]) return;
         viewerTrigger = trigger;
-        viewerPhoto(index);
         viewer.showModal();
+        viewerPhoto(index);
     }
     viewer?.querySelector('[data-close-photo]')?.addEventListener('click', () => viewer.close());
     viewer?.querySelector('[data-prev-photo]')?.addEventListener('click', () => viewerPhoto(viewerIndex - 1));
@@ -412,13 +468,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) viewer.close();
     });
     viewer?.addEventListener('close', () => {
+        cancelViewerLoad();
         (viewerTrigger?.isConnected ? viewerTrigger : heading)?.focus({preventScroll: true});
         viewerImage.removeAttribute('src');
+        viewerImage.setAttribute('aria-busy', 'false');
+        viewerStatus.textContent = '';
     });
     viewerImage?.addEventListener('error', () => {
         if (!viewer.open) return;
+        if (viewerImage.complete && viewerImage.naturalWidth > 0) return;
         viewerImage.hidden = true;
-        viewerCaption.textContent = '照片暂时无法载入，请检查照片文件的位置。';
+        if (!viewerLoader) {
+            viewerImage.setAttribute('aria-busy', 'false');
+            viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
+        }
     });
 
     function cancelViewAnimation() {
@@ -511,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const city = cityById.get(event.target.closest('[data-city-id]')?.dataset.cityId);
         if (!city) { tooltip.hidden = true; return; }
-        tooltip.textContent = `${shortName(city.name)}${hasRecord(city.id) ? ` · ${entries(city.id).reduce((sum, entry) => sum + photos(entry).length, 0)} 张照片` : ''}`;
+        tooltip.textContent = `${shortName(city.name)}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
         tooltip.hidden = false;
         const bounds = tooltip.parentElement.getBoundingClientRect();
         tooltip.style.left = `${Math.max(8, Math.min(bounds.width - tooltip.offsetWidth - 8, event.clientX - bounds.left + 12))}px`;
@@ -599,7 +662,14 @@ document.addEventListener('DOMContentLoaded', () => {
             provinces = (Array.isArray(data.provinces) ? data.provinces : []).filter(province => province && typeof province.name === 'string' && Array.isArray(province.center) && province.center.length === 2 && province.center.every(Number.isFinite));
             initialBox = [...data.viewBox];
             view = [...initialBox];
-            paths.forEach((cityPaths, id) => cityPaths.forEach(path => path.classList.toggle('is-recorded', hasRecord(id))));
+            paths.forEach((cityPaths, id) => cityPaths.forEach(path => {
+                path.classList.toggle('is-recorded', hasRecord(id));
+                path.dataset.photoCount = String(photoCount(id));
+                path.style.setProperty('--travel-photo-weight', photoWeight(id));
+                const title = path.querySelector('title');
+                const city = cityById.get(id);
+                if (title && city) title.textContent = cityDescription(city);
+            }));
             markers = canvas.querySelector('.travel-map-markers');
             if (!markers) throw new Error('Missing map markers');
             provinceLabels = canvas.querySelector('.travel-map-province-labels');

@@ -1,5 +1,6 @@
 public/
 node_modules/
+.cache/travel-thumbnails/
 db.json
 .DS_Store
 **/.DS_Store

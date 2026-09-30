@@ -36,3 +36,7 @@ Put photos in `source/images/travel/`, then edit `source/_posts/travel-journal.m
 ```
 
 Keep `travel_journal: true` in the post's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `source/travel/china-cities.json`. Hexo embeds the map SVG and city index in the article, so the map does not need a separate data request or an external map service.
+
+Every build automatically creates WebP previews for local JPEG, PNG, WebP, and AVIF photos in `source/images/travel/`, including subfolders. Previews fit within 960 × 960 pixels, preserve orientation, and never enlarge smaller photos. City albums load these lightweight previews; opening a photo loads its original full-resolution file. Keep adding photos and Markdown links as before—there is no separate thumbnail step.
+
+Generated previews use content-hashed URLs under `/images/travel-thumbnails/` and are cached locally in `.cache/travel-thumbnails/` (ignored by Git). Unchanged photos reuse the cache; changed photos get new URLs. The first build takes longer while it creates previews. Invalid or unreadable image files stop the build with their filename so they can be fixed before deployment. External image URLs are unchanged and do not receive local previews.

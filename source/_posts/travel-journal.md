@@ -40,6 +40,21 @@ travel_journal: true
 
 ![在外滩一号餐厅看夜景](../images/travel/shanghai-waitan1.jpg)
 
+![人与景](../images/travel/shanghai-waitan2.jpg)
+
+## 上海展览中心
+
+![有都市感的城市，但并不是褒义](../images/travel/shanghai-zlzx.jpg)
+
+## 海昌海洋公园
+
+![黄貂鱼](../images/travel/shanghai-haicang.jpg)
+
+
+## 浦东美术馆
+
+![艺术是一种不需要理解的美学](../images/travel/shanghai-pdmsg.jpg)
+
 # 黄山
 
 ## 呈坎
@@ -112,3 +127,24 @@ travel_journal: true
 ![珠江夜景](../images/travel/guangzhou-chuan.jpg)
 
 ![小蛮腰](../images/travel/guangzhou-xmy.jpg)
+
+# 太原
+
+## 山西博物院
+
+![西周鸟盖人足盉，酒器](../images/travel/taiyuan-bowuguan1.jpg)
+
+![西周龙耳人足方盒，古代女性盛放梳妆用品](../images/travel/taiyuan-bowuguan2.jpg)
+
+![北魏彩绘人物故事漆屏，故事大都取材自汉代刘向的《列女传》](../images/travel/taiyuan-bowuguan3.jpg)
+
+## 晋祠
+
+![晋祠圣母殿](../images/travel/taiyuan-jc1.jpg)
+
+![晋祠圣母殿](../images/travel/taiyuan-jc2.jpg)
+
+![晋祠圣母殿](../images/travel/taiyuan-jc3.jpg)
+
+![晋祠圣母殿](../images/travel/taiyuan-jc4.jpg)
+

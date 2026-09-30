@@ -3,7 +3,7 @@
 <div class="travel-journal prose-shiro" id="travelJournal" data-view="atlas" lang="zh-CN">
     <div class="travel-atlas-layout">
         <section class="travel-atlas" aria-labelledby="travelMapHeading">
-            <header class="travel-atlas-heading"><div><p class="travel-kicker">TRAVEL ATLAS</p><h2 id="travelMapHeading">旅行地图</h2></div><div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>城市点亮率</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>城市</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" hidden>← 全部城市</button></div></header>
+            <header class="travel-atlas-heading"><p class="travel-kicker" id="travelMapHeading">TRAVEL ATLAS</p><div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>城市点亮率</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>城市</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" hidden>← 全部城市</button></div></header>
             <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的城市" hidden></nav>
             <div class="travel-city-search" id="travelCitySearch">
                 <label class="travel-search"><span class="visually-hidden">搜索城市</span><span aria-hidden="true">⌕</span><input type="search" id="travelSearch" role="combobox" placeholder="搜索城市" autocomplete="off" aria-autocomplete="list" aria-controls="travelCityList" aria-expanded="false"></label>
@@ -27,5 +27,5 @@
     <script id="travelMapData" type="application/json">{{ travel_map_payload() | safe }}</script>
     <script id="travelJournalData" type="application/json">{{ travel_journal_payload(page) | safe }}</script>
     <noscript><p class="travel-noscript">交互地图需要启用 JavaScript；旅行记录的数据保存在这篇手记中。</p></noscript>
-    <dialog id="travelPhotoViewer" class="travel-photo-viewer" aria-label="旅行照片预览"><header><span id="travelViewerCounter"></span><button type="button" data-close-photo aria-label="关闭照片">×</button></header><figure><img id="travelViewerImage" alt=""><figcaption id="travelViewerCaption"></figcaption></figure><nav aria-label="浏览照片"><button type="button" data-prev-photo aria-label="上一张照片">←</button><button type="button" data-next-photo aria-label="下一张照片">→</button></nav></dialog>
+    <dialog id="travelPhotoViewer" class="travel-photo-viewer" aria-label="旅行照片预览"><header><span id="travelViewerCounter"></span><button type="button" data-close-photo aria-label="关闭照片">×</button></header><figure><img id="travelViewerImage" alt=""><figcaption id="travelViewerCaption"></figcaption></figure><p id="travelViewerStatus" class="travel-viewer-status" role="status" aria-live="polite"></p><nav aria-label="浏览照片"><button type="button" data-prev-photo aria-label="上一张照片">←</button><button type="button" data-next-photo aria-label="下一张照片">→</button></nav></dialog>
 </div>

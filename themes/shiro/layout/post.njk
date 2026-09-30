@@ -16,6 +16,6 @@
     {% if page.tags.length %}<div class="post-tags">{% for tag in page.tags.toArray() %}{{ render_tag(tag) }}{% endfor %}</div>{% endif %}
     {% if page.prev or page.next %}<nav class="post-navigation" aria-label="Adjacent notes">{% if page.prev %}<a class="post-newer" href="{{ url_for(page.prev.path) }}"><span>← Newer note</span><strong>{{ page.prev.title }}</strong></a>{% endif %}{% if page.next %}<a class="post-older" href="{{ url_for(page.next.path) }}"><span>Older note →</span><strong>{{ page.next.title }}</strong></a>{% endif %}</nav>{% endif %}
     {% include "_partial/comments/disqus.njk" %}
-    {% if theme.article.show_toc %}{{ toc_button(article_toc) }}{% endif %}
+    {% if theme.article.show_toc and not page.travel_journal %}{{ toc_button(article_toc) }}{% endif %}
 </article>
 {% endblock %}

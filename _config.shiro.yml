@@ -9,10 +9,6 @@ menu:
    section: journal
  - name: About
    url: /about
- - name: GitHub
-   url: https://github.com/y1yang0
-   # Open in new tab
-   target: _blank
 
 site:
   favicon: /favicon.svg

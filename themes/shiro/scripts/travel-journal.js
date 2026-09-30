@@ -4,14 +4,22 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { escapeHTML } = require('hexo-util');
 const { parseTravelMarkdown, serializeJournal } = require(path.join(hexo.base_dir, 'tools/travel-markdown'));
+const { buildTravelThumbnails } = require(path.join(hexo.base_dir, 'tools/travel-images'));
 
 let mapData;
 let journals = new WeakMap();
+let travelImages = { photos: new Map(), routes: [] };
 const heartCityIds = ['330100', '510600'];
-hexo.extend.filter.register('before_generate', () => {
+hexo.extend.filter.register('before_generate', async () => {
   mapData = undefined;
   journals = new WeakMap();
+  travelImages = await buildTravelThumbnails({
+    sourceDir: hexo.source_dir,
+    cacheDir: path.join(hexo.base_dir, '.cache/travel-thumbnails')
+  });
 });
+
+hexo.extend.generator.register('travel_thumbnails', () => travelImages.routes);
 
 function readMap() {
   if (!mapData) mapData = JSON.parse(fs.readFileSync(path.join(hexo.source_dir, 'travel/china-cities.json'), 'utf8'));
@@ -31,6 +39,16 @@ function readJournal(page) {
     cities: readMap().cities,
     onWarning: message => hexo.log.warn(`[旅行相册] ${page?.source || 'travel-journal'}：${message}`)
   });
+  for (const city of Object.values(journal.cities)) {
+    for (const entry of city.entries) {
+      for (const photo of entry.photos || []) {
+        if (!photo.src.startsWith('/images/travel/')) continue;
+        const pathname = decodeURIComponent(new URL(photo.src, 'https://travel.invalid').pathname);
+        const thumbnail = travelImages.photos.get(pathname);
+        if (thumbnail) Object.assign(photo, thumbnail);
+      }
+    }
+  }
   if (page && typeof page === 'object') journals.set(page, journal);
   return journal;
 }
@@ -78,11 +96,26 @@ hexo.extend.helper.register('travel_map_payload', () => {
 hexo.extend.helper.register('travel_map_markup', function () {
   const data = readMap();
   const journal = readJournal(this.page);
+  const photoCount = id => (journal.cities[id]?.entries || []).reduce((sum, entry) =>
+    sum + (entry.photos || []).filter(photo => photo && typeof photo.src === 'string').length, 0);
+  const maxPhotoCount = Math.max(1, ...Object.keys(journal.cities).map(photoCount));
+  // Match the client map's logarithmic scale; equal photo counts share a color.
+  const photoWeight = id => {
+    const count = photoCount(id);
+    const weight = count ? 22 + (maxPhotoCount > 1 ? 58 * Math.log(count) / Math.log(maxPhotoCount) : 0) : 0;
+    return `${weight.toFixed(2)}%`;
+  };
   const cityClass = city => `travel-map-city${journal.cities[city.id]?.entries?.length ? ' is-recorded' : ''}`;
+  const cityAttributes = city => ({
+    'data-city-id': city.id,
+    'data-photo-count': photoCount(city.id),
+    class: cityClass(city),
+    style: `--travel-photo-weight:${photoWeight(city.id)}`
+  });
+  const cityTitle = city => element('title', {}, escapeHTML(`${city.name}${journal.cities[city.id]?.entries?.length ? ` · ${photoCount(city.id)} 张照片` : ''}`));
   const border = (d, className) => element('path', { d, class: className, 'pointer-events': 'none' });
   let markup = element('g', { class: 'travel-map-cities' }, data.cities.map(city =>
-    element('path', { d: city.path, 'data-city-id': city.id, class: cityClass(city) },
-      element('title', {}, escapeHTML(city.name)))
+    element('path', { d: city.path, ...cityAttributes(city) }, cityTitle(city))
   ).join(''));
   for (const province of data.provinces || []) {
     if (province.path) markup += border(province.path, 'travel-map-province-border');
@@ -98,7 +131,7 @@ hexo.extend.helper.register('travel_map_markup', function () {
     });
     contents += border(inset.path, 'travel-map-outline');
     for (const city of data.cities.filter(city => city.insetPath)) {
-      contents += element('path', { d: city.insetPath, 'data-city-id': city.id, class: cityClass(city) });
+      contents += element('path', { d: city.insetPath, ...cityAttributes(city) }, cityTitle(city));
     }
     if (inset.dashedPath) contents += border(inset.dashedPath, 'travel-map-island-dashes');
     contents += element('text', {
