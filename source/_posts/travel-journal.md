@@ -70,3 +70,45 @@ travel_journal: true
 
 
 ![大水法遗址与树](../images/travel/beijing-ymy2.jpg)
+
+# 丽江
+
+![旅途随拍](../images/travel/lijiang-stop.jpg)
+
+# 大理白族
+
+![洱海小憩](../images/travel/dalibaizu-erhai1.jpg)
+
+![洱海小憩](../images/travel/dalibaizu-erhai2.jpg)
+
+# 普洱
+
+![旅途随拍，服务区看到种甘蔗的农田](../images/travel/puer-fwq1.jpg)
+
+![旅途随拍，服务区看到种甘蔗的农田](../images/travel/puer-fwq2.jpg)
+
+# 临沧
+
+![云南的天离地很近](../images/travel/lincang-walk1.jpg)
+
+![过年去临沧走亲戚，无聊随机漫步](../images/travel/lincang-walk2.jpg)
+
+![夏威夷果](../images/travel/lincang-xiaweiyiguo.jpg)
+
+# 阿坝藏族羌族
+
+## 四姑娘山
+
+![雪地绵羊](../images/travel/aba-sgns1.jpg)
+
+![四姑娘山双桥沟](../images/travel/aba-sgns2.jpg)
+
+![四姑娘山双桥沟](../images/travel/aba-sgns3.jpg)
+
+![野牦牛](../images/travel/aba-sgns4.jpg)
+
+# 广州
+
+![珠江夜景](../images/travel/guangzhou-chuan.jpg)
+
+![小蛮腰](../images/travel/guangzhou-xmy.jpg)
