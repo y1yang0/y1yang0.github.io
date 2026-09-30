@@ -4,8 +4,9 @@ menu:
    url: /
  - name: Archives
    url: /archives
-#  - name: Categories
-#    url: /categories
+ - name: Journal
+   url: /2026/09/30/travel-journal/
+   section: journal
  - name: About
    url: /about
  - name: GitHub
@@ -15,10 +16,6 @@ menu:
 
 site:
   favicon: /favicon.svg
-  # Whether to display the seal (stamp) in the header
-  seal: true
-  seal_text: "楊"
-  notetext: "文王拘而演周易 仲尼厄而作春秋"
   rss:
     enabled: false
     path: /atom.xml
@@ -45,9 +42,7 @@ excerpt:
   fallback:
     enabled: true
     length: 200
-  show_read_more: false
 
 # Homepage copy; the name comes from author in _config.yml.
 journal:
   motto: '致广大，尽精微。'
-  description: 'A personal notebook of things learned and thoughts in progress.'

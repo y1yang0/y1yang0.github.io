@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="{{ config.language }}">
-{% set has_gallery_images = (is_post() or is_page()) and ('<img' in (page.content | default('') | lower)) %}
+{% set has_gallery_images = not page.travel_journal and (is_post() or is_page()) and ('<img' in (page.content | default('') | lower)) %}
 {% include "_partial/common/head.njk" %}
 <body class="journal-site{% if is_home() %} home-page{% endif %}">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -15,5 +15,6 @@
     <script src="{{ url_for('js/lightgallery.js') }}" defer></script>
     {% endif %}
     <script src="{{ journal_asset('js/main.js') }}" defer></script>
+    {% if page.travel_journal %}<script src="{{ journal_asset('js/travel-journal.js') }}" defer></script>{% endif %}
 </body>
 </html>

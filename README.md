@@ -11,15 +11,28 @@ npm run server -- --port 4000
 
 Build the static site with `npm run build`. Hexo writes the generated files to `public/`. The existing GitHub Pages workflow deploys when changes are pushed to `main`.
 
-## Customize the design
+## Project files
 
-- `_config.shiro.yml`: navigation, stamp, footer quotation, and the homepage `journal` copy.
-- `themes/shiro/source/css/journal.css`: colors, typography, layouts, dark mode, and mobile/print styles. Color tokens are at the top.
-- `themes/shiro/source/images/field-notes.svg`: the homepage illustration.
-- `themes/shiro/layout/`: homepage, articles, archives, topics, and shared templates.
-- `source/_posts/`: original Markdown articles.
-- `source/about/index.md`: personal background and professional identity; keep these details here rather than duplicating them in homepage copy or site descriptions.
+- `_config.yml`: site identity, URLs, and Hexo settings.
+- `_config.shiro.yml`: navigation, homepage motto, and theme options.
+- `themes/shiro/layout/`: page templates and the inline SVG banner in `_partial/components/banner-line-art.njk`.
+- `themes/shiro/source/css/journal.css`: colors, typography, layouts, and mobile/print styles.
+- `themes/shiro/source/css/travel-journal.css`: the travel map and albums.
+- `source/_posts/`: Markdown articles.
+- `source/about/index.md`: personal background.
 
-The journal uses system fonts with locally bundled serif fallbacks. No remote font request is needed. Its stylesheet replaces the old Tailwind stylesheet in the page head; changing the journal does not require a separate Tailwind build.
+The warm, dark, and white themes remember the reader's choice. Fonts are local or system fonts. Article pages support image zoom, code/article copying, contents, and reading progress. There is no separate CSS build step.
 
-The default appearance is warm paper. The Day/Night control remembers the reader's choice. Article pages retain image zoom, code/article copying, the Ask AI shortcut, table of contents, and reading progress. The banner's text is configuration-driven; its image stays local.
+## Travel albums
+
+Put photos in `source/images/travel/`, then edit `source/_posts/travel-journal.md`. Each city heading starts an album; image alt text becomes its caption:
+
+```markdown
+# 杭州
+
+## 西湖
+
+![自划船](/images/travel/hangzhou-xihu1.jpg)
+```
+
+Keep `travel_journal: true` in the post's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `source/travel/china-cities.json`. Hexo embeds the map SVG and city index in the article, so the map does not need a separate data request or an external map service.

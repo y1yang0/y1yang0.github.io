@@ -65,6 +65,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lg-zoom.min.css">
     {% endif %}
     <link rel="stylesheet" href="{{ journal_asset('css/journal.css') }}">
+    {% if page.travel_journal %}<link rel="stylesheet" href="{{ journal_asset('css/travel-journal.css') }}">{% endif %}
 
     <!-- Analytics -->
     {% include "../analytics/google.njk" %}

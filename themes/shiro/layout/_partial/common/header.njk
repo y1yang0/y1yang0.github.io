@@ -2,7 +2,7 @@
     <div class="site-shell header-inner">
         <nav class="site-nav" aria-label="Main navigation">
             {% for item in theme.menu %}
-            <a href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}" rel="noopener noreferrer"{% endif %}{% if (item.url == '/' and is_home()) or (item.url == '/archives' and is_archive()) or (item.url == '/about' and page.path == 'about/index.html') or (item.url == '/categories' and (is_category() or page.path == 'categories/index.html')) %} aria-current="page"{% endif %}>{{ item.name }}{% if item.target == '_blank' %}<span class="external-arrow" aria-hidden="true"> ↗</span>{% endif %}</a>
+            <a href="{{ url_for(item.url) }}" {% if item.target %}target="{{ item.target }}" rel="noopener noreferrer"{% endif %}{% if (item.url == '/' and is_home() and not page.travel_journal) or (item.section == 'journal' and page.travel_journal) or (item.url == '/archives' and is_archive()) or (item.url == '/about' and page.path == 'about/index.html') or (item.url == '/categories' and (is_category() or page.path == 'categories/index.html')) %} aria-current="page"{% endif %}>{{ item.name }}{% if item.target == '_blank' %}<span class="external-arrow" aria-hidden="true"> ↗</span>{% endif %}</a>
             {% endfor %}
             {% if theme.site.rss.enabled %}<a href="{{ url_for(theme.site.rss.path) }}">RSS</a>{% endif %}
         </nav>

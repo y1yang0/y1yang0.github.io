@@ -1731,6 +1731,16 @@ html.dark .toc-dialog::backdrop {
     }
 }
 
+@media(max-width:360px) {
+    .header-inner {
+        padding-inline:16px;
+        gap:8px;
+    }
+    .site-nav {
+        gap:8px;
+    }
+}
+
 @media(prefers-reduced-motion:reduce) {
     html {
         scroll-behavior:auto;
