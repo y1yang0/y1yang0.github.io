@@ -14,6 +14,28 @@ travel_journal: true
 
 ![西湖文化广场的桥上看京杭大运河，景美故事更美](../images/travel/hangzhou-dayunhe.jpg)
 
+# 宁波
+
+## 海天一洲
+
+![中国的基建挺厉害的](../images/travel/ningbo-htyz1.jpg)
+
+![莫名其妙联想到雾都孤儿](../images/travel/ningbo-htyz2.jpg)
+
+## 杭州湾国家湿地公园
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy1.jpg)
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy2.jpg)
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy3.jpg)
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy4.jpg)
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy5.jpg)
+
+![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy6.jpg)
+
 # 金华
 
 ## 仙华山
@@ -180,4 +202,4 @@ travel_journal: true
 
 # 镇江
 
-![](../images/travel/zhenjiang-JSS.jpg)
+![](../images/travel/zhenjiang-jss.jpg)

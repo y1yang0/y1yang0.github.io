@@ -20,6 +20,7 @@
     "hexo-renderer-marked": "^6.0.0",
     "hexo-server": "^3.0.0",
     "hexo-wordcount": "^6.0.1",
-    "htmlparser2": "^9.1.0"
+    "htmlparser2": "^9.1.0",
+    "image-size": "^2.0.4"
   }
 }

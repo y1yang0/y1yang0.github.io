@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewerCaption = document.getElementById('travelViewerCaption');
     const viewerCounter = document.getElementById('travelViewerCounter');
     const viewerStatus = document.getElementById('travelViewerStatus');
+    const viewerRetry = document.getElementById('travelViewerRetry');
+    const viewerReset = document.getElementById('travelViewerReset');
     const viewerStage = document.getElementById('travelViewerStage');
     const photoLens = document.getElementById('travelPhotoLens');
     const photoMagnifier = document.getElementById('travelPhotoMagnifier');
@@ -58,13 +60,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeId = '';
     let activeResult = -1;
     let gallery = [];
+    let albumObserver;
+    let albumLoadEpoch = 0;
+    let albumLoading = 0;
+    const albumLoadQueue = [];
     let viewerIndex = 0;
     let viewerTrigger = null;
     let viewerRequest = 0;
     let viewerOriginalSrc = '';
+    let viewerLoadSrc = '';
+    let photoZoom = 1;
+    let photoPan = {x: 0, y: 0};
+    const photoTouches = new Map();
+    let photoGesture = null;
+    let photoTap = null;
     const authoredBox = svg.viewBox.baseVal;
     let initialBox = [authoredBox.x, authoredBox.y, authoredBox.width, authoredBox.height];
     let view = [...initialBox];
+    let atlasView = [...initialBox];
+    let restoringNavigation = false;
+    let navigationReady = false;
+    let lastAppliedUrl = '';
+    let navigationScrollFrame = 0;
     let mapReady = false;
     let drag = null;
     let suppressClick = false;
@@ -193,7 +210,45 @@ document.addEventListener('DOMContentLoaded', () => {
         search.setAttribute('aria-expanded', 'true');
         if (matching.length) setActiveResult(0);
     }
+    function clearAlbumLoads() {
+        albumLoadEpoch += 1;
+        albumObserver?.disconnect();
+        albumLoadQueue.length = 0;
+        albumLoading = 0;
+        gallery.forEach(photo => {
+            if (photo.loading) photo.image.removeAttribute('src');
+        });
+    }
+    function pumpAlbumLoads() {
+        while (albumLoading < 2 && albumLoadQueue.length) {
+            const photo = albumLoadQueue.shift();
+            photo.queued = false;
+            if (!photo.image.isConnected || photo.image.hasAttribute('src')) continue;
+            photo.loading = true;
+            photo.loadEpoch = albumLoadEpoch;
+            albumLoading += 1;
+            // The observer owns deferral; once a slot is reserved, start the
+            // request rather than letting native lazy loading defer it again.
+            photo.image.loading = 'eager';
+            photo.image.src = photo.src;
+        }
+    }
+    function finishAlbumLoad(photo) {
+        const pending = albumLoadQueue.indexOf(photo);
+        if (pending >= 0) albumLoadQueue.splice(pending, 1);
+        photo.queued = false;
+        if (photo.loading && photo.loadEpoch === albumLoadEpoch) albumLoading = Math.max(0, albumLoading - 1);
+        photo.loading = false;
+        pumpAlbumLoads();
+    }
+    function queueAlbumPhoto(photo) {
+        if (photo.queued || photo.loading || photo.image.hasAttribute('src')) return;
+        photo.queued = true;
+        albumLoadQueue.push(photo);
+        pumpAlbumLoads();
+    }
     function renderEntries(city) {
+        clearAlbumLoads();
         gallery = [];
         const notes = entries(city.id);
         entriesNode.replaceChildren();
@@ -228,23 +283,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     image.width = photo.width;
                     image.height = photo.height;
                 }
+                const ratio = photo.width > 0 && photo.height > 0 ? `${photo.width} / ${photo.height}` : '4 / 3';
+                image.style.aspectRatio = ratio;
+                button.style.aspectRatio = ratio;
                 const index = gallery.length;
-                gallery.push({...photo, src, alt});
-                button.addEventListener('click', () => openViewer(index, button));
+                const item = {...photo, src, alt, image, button};
+                gallery.push(item);
+                button.addEventListener('click', () => openViewer(index, button, {retry: button.classList.contains('is-unavailable')}));
                 image.addEventListener('load', () => {
+                    image.style.aspectRatio = button.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
                     image.hidden = false;
                     button.classList.remove('is-unavailable');
                     button.querySelector('.travel-photo-error')?.remove();
+                    finishAlbumLoad(item);
                 });
                 image.addEventListener('error', () => {
                     if (!image.complete || image.naturalWidth > 0) return;
+                    finishAlbumLoad(item);
                     image.hidden = true;
                     button.classList.add('is-unavailable');
                     if (!button.querySelector('.travel-photo-error')) {
                         button.append(make('span', 'travel-photo-error', '照片暂时无法载入，点击重试'));
                     }
                 });
-                image.src = src;
                 button.append(image);
                 figure.append(button);
                 if (text(photo.caption)) figure.append(make('figcaption', '', photo.caption));
@@ -253,6 +314,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (grid.childElementCount) article.append(grid);
             entriesNode.append(article);
         });
+        if ('IntersectionObserver' in window) {
+            const byButton = new Map(gallery.map(photo => [photo.button, photo]));
+            const epoch = albumLoadEpoch;
+            const observer = new IntersectionObserver(changes => {
+                if (epoch !== albumLoadEpoch) return;
+                changes.filter(change => change.isIntersecting).forEach(change => {
+                    observer.unobserve(change.target);
+                    queueAlbumPhoto(byButton.get(change.target));
+                });
+            }, {rootMargin: '360px 0px'});
+            albumObserver = observer;
+            gallery.forEach(photo => observer.observe(photo.button));
+        } else gallery.forEach(queueAlbumPhoto);
     }
     function renderMarkers() {
         if (!markers) return;
@@ -417,17 +491,87 @@ document.addEventListener('DOMContentLoaded', () => {
             occupied.push([labelX + box.x, labelY + box.y, labelX + box.x + box.width, labelY + box.y + box.height]);
         });
     }
-    function hashCity() {
-        const match = location.hash.match(/^#city=([^&]+)/);
-        if (!match) return '';
-        try { return decodeURIComponent(match[1]); } catch (_) { return ''; }
+    function navigationRoute() {
+        const params = new URLSearchParams(location.hash.slice(1));
+        return {city: params.get('city') || '', photo: params.get('photo') || ''};
     }
-    function selectCity(id, {scroll = false, focus = false, hash = true} = {}) {
+    function hashCity() {
+        return navigationRoute().city;
+    }
+    function photoKey(photo) {
+        const url = new URL(photo.src);
+        return url.origin === location.origin && url.pathname.startsWith('/images/travel/')
+            ? `${url.pathname.slice('/images/travel/'.length)}${url.search}${url.hash}` : photo.src;
+    }
+    function navigationSnapshot(route, photoEntry = false) {
+        return {city: route.city, photo: route.photo, atlasView: [...atlasView], scrollY: window.scrollY, photoEntry};
+    }
+    function rememberNavigation() {
+        if (!navigationReady || restoringNavigation || navigationRoute().city !== activeId) return;
+        const route = navigationRoute();
+        const previous = history.state?.travelJournal;
+        history.replaceState({...history.state, travelJournal: navigationSnapshot(route, !!previous?.photoEntry)}, '', location.href);
+    }
+    function scheduleNavigationMemory() {
+        if (navigationScrollFrame) return;
+        navigationScrollFrame = requestAnimationFrame(() => { navigationScrollFrame = 0; rememberNavigation(); });
+    }
+    function writeNavigation(city, photo = '', {replace = false, photoEntry = false} = {}) {
+        const params = new URLSearchParams();
+        if (city) params.set('city', city);
+        if (city && photo) params.set('photo', photo);
+        const query = params.toString();
+        const hash = query ? `#${query}` : '';
+        const url = `${location.pathname}${location.search}${hash}`;
+        const same = location.hash === hash;
+        const state = {...history.state, travelJournal: navigationSnapshot({city, photo}, photoEntry)};
+        history[replace || same ? 'replaceState' : 'pushState'](state, '', url);
+        lastAppliedUrl = location.href;
+    }
+    function restoreNavigation({force = false, refreshMap = false, preserveScroll = false} = {}) {
+        if (!force && lastAppliedUrl === location.href) return;
+        lastAppliedUrl = location.href;
+        const route = navigationRoute();
+        const saved = history.state?.travelJournal;
+        restoringNavigation = true;
+        if (Array.isArray(saved?.atlasView) && saved.atlasView.length === 4 && saved.atlasView.every(Number.isFinite)) atlasView = [...saved.atlasView];
+        const city = cityById.get(route.city);
+        if (city) {
+            if (activeId !== city.id || root.dataset.view !== 'album') selectCity(city.id, {hash: false});
+            else if (refreshMap) {
+                heading.textContent = shortName(city.name);
+                document.getElementById('travelActiveProvince').textContent = city.province || '中国';
+                paths.forEach((cityPaths, id) => cityPaths.forEach(path => path.classList.toggle('is-selected', id === city.id)));
+                focusCityMap(city);
+                renderCityControls();
+            }
+            const index = route.photo ? gallery.findIndex(photo => photoKey(photo) === route.photo) : -1;
+            if (index >= 0) {
+                if (!viewer.open) openViewer(index, gallery[index].button);
+                else if (viewerIndex !== index) viewerPhoto(index);
+            } else {
+                if (viewer.open) viewer.close();
+                if (route.photo) writeNavigation(city.id, '', {replace: true});
+            }
+        } else {
+            showAtlas({hash: false});
+            if (mapReady && (route.city || route.photo)) writeNavigation('', '', {replace: true});
+        }
+        restoringNavigation = false;
+        navigationReady = true;
+        if (!history.state?.travelJournal) rememberNavigation();
+        if (!preserveScroll && Number.isFinite(saved?.scrollY)) {
+            requestAnimationFrame(() => window.scrollTo({top: saved.scrollY, behavior: 'instant'}));
+        }
+    }
+    function selectCity(id, {scroll = false, focus = false, hash = true, historyMode = 'push'} = {}) {
         const city = cityById.get(String(id));
         if (!city) return false;
+        if (hash) rememberNavigation();
         hideMapLens();
         if (viewer?.open) viewer.close();
         const enteringAlbum = root.dataset.view !== 'album';
+        if (enteringAlbum && !restoringNavigation) atlasView = [...view];
         activeId = city.id;
         root.dataset.view = 'album';
         details.hidden = false;
@@ -441,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         focusCityMap(city, {animate: scroll});
         renderEntries(city);
         renderCityControls();
-        if (hash && hashCity() !== city.id) history.replaceState(null, '', `${location.pathname}${location.search}#city=${encodeURIComponent(city.id)}`);
+        if (hash) writeNavigation(city.id, '', {replace: historyMode === 'replace'});
         live.textContent = `已选择${city.name}，${hasRecord(city.id) ? `${entries(city.id).reduce((sum, entry) => sum + photos(entry).length, 0)} 张照片` : '还没有旅行记录'}。`;
         if (scroll) {
             const target = root.querySelector('.travel-atlas-layout');
@@ -453,10 +597,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     function showAtlas({hash = true, scroll = false, focus = false} = {}) {
+        if (hash) rememberNavigation();
         hideMapLens();
         cancelViewAnimation();
         if (viewer?.open) viewer.close();
         activeId = '';
+        clearAlbumLoads();
         gallery = [];
         root.dataset.view = 'atlas';
         details.hidden = true;
@@ -465,18 +611,35 @@ document.addEventListener('DOMContentLoaded', () => {
         search.value = '';
         tooltip.hidden = true;
         paths.forEach(cityPaths => cityPaths.forEach(path => path.classList.remove('is-selected')));
-        view = [...initialBox];
+        view = [...atlasView];
         applyView();
         renderCityControls();
-        if (hash && location.hash) history.replaceState(null, '', `${location.pathname}${location.search}`);
+        if (hash) writeNavigation('', '');
         live.textContent = '全国旅行地图，选择一座城市查看相册。';
         if (scroll) root.querySelector('.travel-atlas-layout').scrollIntoView({behavior: reducedMotion ? 'instant' : 'smooth', block: 'start'});
         if (focus) svg.focus({preventScroll: true});
     }
     allCitiesButton.addEventListener('click', () => showAtlas({scroll: true, focus: true}));
+    root.addEventListener('travelphotochange', event => {
+        if (restoringNavigation || !navigationReady) return;
+        const photo = gallery[event.detail.index];
+        if (!photo) return;
+        rememberNavigation();
+        const previous = navigationRoute();
+        writeNavigation(activeId, photoKey(photo), {replace: !!previous.photo, photoEntry: previous.photo ? !!history.state?.travelJournal?.photoEntry : true});
+    });
+    viewer?.addEventListener('close', () => {
+        if (viewer.open || restoringNavigation || !navigationRoute().photo) return;
+        if (history.state?.travelJournal?.photoEntry) history.back();
+        else writeNavigation(activeId, '', {replace: true});
+    });
+    window.addEventListener('scroll', scheduleNavigationMemory, {passive: true});
     function cancelViewerLoad() {
         viewerOriginalSrc = '';
+        viewerLoadSrc = '';
+        if (viewerRetry) viewerRetry.hidden = true;
         hidePhotoLens();
+        resetPhotoTransform();
         viewerRequest += 1;
     }
     async function finishViewerLoad(request, src) {
@@ -488,8 +651,16 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '';
         viewerOriginalSrc = src;
+        if (viewerRetry) viewerRetry.hidden = true;
+        const photo = gallery[viewerIndex];
+        if (photo?.image?.isConnected && (!photo.image.naturalWidth || photo.button.classList.contains('is-unavailable'))) {
+            photo.image.hidden = false;
+            photo.button.classList.remove('is-unavailable');
+            photo.button.querySelector('.travel-photo-error')?.remove();
+            photo.image.src = src;
+        }
     }
-    function viewerPhoto(index) {
+    function viewerPhoto(index, {retry = false} = {}) {
         if (!gallery.length) return;
         cancelViewerLoad();
         const request = viewerRequest;
@@ -502,18 +673,27 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerCaption.textContent = text(photo.caption) || photo.alt;
         viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}`;
         viewer.querySelectorAll('[data-prev-photo],[data-next-photo]').forEach(button => { button.disabled = gallery.length < 2; });
-        viewerImage.src = photo.src;
-        if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, photo.src);
+        viewerLoadSrc = photo.src;
+        if (retry) {
+            const retried = new URL(photo.src);
+            retried.searchParams.set('_journal_retry', `${Date.now()}-${request}`);
+            viewerLoadSrc = retried.href;
+        }
+        viewerImage.src = viewerLoadSrc;
+        if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, viewerLoadSrc);
+        root.dispatchEvent(new CustomEvent('travelphotochange', {detail: {index: viewerIndex}}));
     }
-    function openViewer(index, trigger) {
+    function openViewer(index, trigger, options = {}) {
         if (!viewer || !gallery[index]) return;
         viewerTrigger = trigger;
-        viewer.showModal();
-        viewerPhoto(index);
+        if (!viewer.open) viewer.showModal();
+        viewerPhoto(index, options);
     }
     viewer?.querySelector('[data-close-photo]')?.addEventListener('click', () => viewer.close());
     viewer?.querySelector('[data-prev-photo]')?.addEventListener('click', () => viewerPhoto(viewerIndex - 1));
     viewer?.querySelector('[data-next-photo]')?.addEventListener('click', () => viewerPhoto(viewerIndex + 1));
+    viewerRetry?.addEventListener('click', () => viewerPhoto(viewerIndex, {retry: true}));
+    viewerReset?.addEventListener('click', resetPhotoTransform);
     viewer?.addEventListener('keydown', event => {
         if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
             event.preventDefault();
@@ -526,13 +706,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) viewer.close();
     });
     viewer?.addEventListener('close', () => {
+        if (viewer.open) return;
         cancelViewerLoad();
         (viewerTrigger?.isConnected ? viewerTrigger : heading)?.focus({preventScroll: true});
         viewerImage.removeAttribute('src');
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '';
     });
-    viewerImage?.addEventListener('load', () => finishViewerLoad(viewerRequest, gallery[viewerIndex]?.src));
+    viewerImage?.addEventListener('load', () => finishViewerLoad(viewerRequest, viewerLoadSrc));
     viewerImage?.addEventListener('error', () => {
         if (!viewer.open || !viewerImage.complete || viewerImage.naturalWidth > 0) return;
         viewerOriginalSrc = '';
@@ -540,7 +721,116 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerImage.hidden = true;
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
+        if (viewerRetry) viewerRetry.hidden = false;
     });
+    function resetPhotoTransform() {
+        photoTouches.forEach((_, id) => {
+            if (viewerStage?.hasPointerCapture(id)) viewerStage.releasePointerCapture(id);
+        });
+        photoTouches.clear();
+        photoGesture = null;
+        photoTap = null;
+        photoZoom = 1;
+        photoPan = {x: 0, y: 0};
+        if (viewerImage) viewerImage.style.transform = '';
+        viewer?.classList.remove('is-photo-zoomed');
+        if (viewerReset) viewerReset.hidden = true;
+    }
+    function transformPhoto(scale, x, y) {
+        photoZoom = Math.max(1, Math.min(5, scale));
+        const limitX = Math.max(0, (viewerImage.offsetWidth * photoZoom - viewerStage.clientWidth) / 2);
+        const limitY = Math.max(0, (viewerImage.offsetHeight * photoZoom - viewerStage.clientHeight) / 2);
+        photoPan = {x: Math.max(-limitX, Math.min(limitX, x)), y: Math.max(-limitY, Math.min(limitY, y))};
+        const zoomed = photoZoom > 1.01;
+        if (!zoomed) photoPan = {x: 0, y: 0};
+        viewerImage.style.transform = zoomed ? `translate(${photoPan.x}px,${photoPan.y}px) scale(${photoZoom})` : '';
+        viewer.classList.toggle('is-photo-zoomed', zoomed);
+        if (viewerReset) viewerReset.hidden = !zoomed;
+        hidePhotoLens();
+    }
+    function photoTouchCenter() {
+        const bounds = viewerStage.getBoundingClientRect();
+        return {x: bounds.left + viewerImage.offsetLeft + viewerImage.offsetWidth / 2,
+            y: bounds.top + viewerImage.offsetTop + viewerImage.offsetHeight / 2};
+    }
+    function startPhotoGesture(blockSwipe = false) {
+        const points = [...photoTouches.values()];
+        if (points.length >= 2) {
+            const [a, b] = points;
+            photoGesture = {kind: 'pinch', distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)),
+                mid: {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2}, center: photoTouchCenter(),
+                zoom: photoZoom, pan: {...photoPan}};
+            photoTap = null;
+        } else if (points.length) {
+            const point = points[0];
+            photoGesture = {kind: 'single', start: {...point}, last: {...point}, time: performance.now(),
+                zoom: photoZoom, pan: {...photoPan}, blockSwipe};
+        } else photoGesture = null;
+    }
+    viewerStage?.addEventListener('pointerdown', event => {
+        if (event.pointerType !== 'touch' || !viewer.open || !viewerOriginalSrc) return;
+        hidePhotoLens();
+        photoTouches.set(event.pointerId, {x: event.clientX, y: event.clientY});
+        viewerStage.setPointerCapture(event.pointerId);
+        startPhotoGesture(photoTouches.size > 1);
+    });
+    viewerStage?.addEventListener('pointermove', event => {
+        if (!photoTouches.has(event.pointerId) || !photoGesture) return;
+        event.preventDefault();
+        const point = {x: event.clientX, y: event.clientY};
+        photoTouches.set(event.pointerId, point);
+        if (photoGesture.kind === 'pinch') {
+            const [a, b] = [...photoTouches.values()];
+            if (!a || !b) return;
+            const midpoint = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+            const scale = Math.max(1, Math.min(5, photoGesture.zoom * Math.hypot(b.x - a.x, b.y - a.y) / photoGesture.distance));
+            const ratio = scale / photoGesture.zoom;
+            transformPhoto(scale,
+                midpoint.x - photoGesture.center.x - (photoGesture.mid.x - photoGesture.center.x - photoGesture.pan.x) * ratio,
+                midpoint.y - photoGesture.center.y - (photoGesture.mid.y - photoGesture.center.y - photoGesture.pan.y) * ratio);
+        } else if (photoGesture.zoom > 1.01) {
+            transformPhoto(photoGesture.zoom, photoGesture.pan.x + point.x - photoGesture.start.x,
+                photoGesture.pan.y + point.y - photoGesture.start.y);
+        } else {
+            // Preserve vertical scrolling in the dialog while horizontal gestures
+            // switch photos. Native page zoom remains available outside the image.
+            const dx = point.x - photoGesture.start.x;
+            const dy = point.y - photoGesture.start.y;
+            if (Math.abs(dy) > Math.abs(dx)) viewer.scrollTop -= point.y - photoGesture.last.y;
+            photoGesture.last = point;
+        }
+    }, {passive: false});
+    function endPhotoGesture(event) {
+        if (!photoTouches.has(event.pointerId)) return;
+        const gesture = photoGesture;
+        const onlyTouch = photoTouches.size === 1;
+        photoTouches.delete(event.pointerId);
+        if (viewerStage.hasPointerCapture(event.pointerId)) viewerStage.releasePointerCapture(event.pointerId);
+        if (event.type !== 'pointercancel' && onlyTouch && gesture?.kind === 'single' && !gesture.blockSwipe) {
+            const dx = event.clientX - gesture.start.x;
+            const dy = event.clientY - gesture.start.y;
+            const elapsed = performance.now() - gesture.time;
+            const threshold = Math.max(45, Math.min(85, viewerStage.clientWidth * .18));
+            if (gesture.zoom <= 1.01 && Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy) * 1.25 && elapsed < 800) {
+                photoTap = null;
+                viewerPhoto(viewerIndex + (dx < 0 ? 1 : -1));
+            } else if (Math.hypot(dx, dy) < 10 && elapsed < 350) {
+                const now = performance.now();
+                if (photoTap && now - photoTap.time < 320 && Math.hypot(event.clientX - photoTap.x, event.clientY - photoTap.y) < 30) {
+                    if (photoZoom > 1.01) resetPhotoTransform();
+                    else {
+                        const center = photoTouchCenter();
+                        transformPhoto(2.5, (center.x - event.clientX) * 1.5, (center.y - event.clientY) * 1.5);
+                    }
+                    photoTap = null;
+                } else photoTap = {x: event.clientX, y: event.clientY, time: now};
+            } else photoTap = null;
+        } else if (event.type === 'pointercancel') photoTap = null;
+        if (photoTouches.size) startPhotoGesture(true);
+        else photoGesture = null;
+    }
+    viewerStage?.addEventListener('pointerup', endPhotoGesture);
+    viewerStage?.addEventListener('pointercancel', endPhotoGesture);
     function hidePhotoLens() {
         if (photoLens) photoLens.hidden = true;
         viewer?.classList.remove('is-photo-magnifying');
@@ -549,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!photoLens || !photoContext || !viewer.open || !viewerOriginalSrc
             || viewerImage.currentSrc !== viewerOriginalSrc || !viewerImage.complete
             || !viewerImage.naturalWidth || event.pointerType !== 'mouse'
-            || !mouseMagnifier.matches || event.buttons) {
+            || !mouseMagnifier.matches || event.buttons || photoZoom > 1.01) {
             hidePhotoLens();
             return;
         }
@@ -598,6 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewer?.addEventListener('keydown', hidePhotoLens);
     window.addEventListener('scroll', hidePhotoLens, {passive: true});
     window.addEventListener('resize', hidePhotoLens, {passive: true});
+    window.addEventListener('resize', resetPhotoTransform, {passive: true});
     window.addEventListener('blur', hidePhotoLens);
     mouseMagnifier.addEventListener('change', hidePhotoLens);
     if (viewerImage) new ResizeObserver(hidePhotoLens).observe(viewerImage);
@@ -646,6 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelector('[data-travel-zoom="out"]').disabled = !mapReady || zoom <= 1.01;
         root.querySelector('[data-travel-zoom="reset"]').disabled = !mapReady || zoom <= 1.01;
         renderMarkers();
+        if (root.dataset.view === 'atlas') { atlasView = [...view]; scheduleNavigationMemory(); }
     }
     function zoomBy(factor, center) {
         cancelViewAnimation();
@@ -658,7 +950,9 @@ document.addEventListener('DOMContentLoaded', () => {
         applyView();
     }
     root.querySelectorAll('[data-travel-zoom]').forEach(button => button.addEventListener('click', () => {
-        if (button.dataset.travelZoom === 'reset') { cancelViewAnimation(); view = [...initialBox]; applyView(); }
+        if (button.dataset.travelZoom === 'reset') {
+            cancelViewAnimation(); view = [...initialBox]; applyView();
+        }
         else zoomBy(button.dataset.travelZoom === 'in' ? 1.5 : 1 / 1.5, cityById.get(activeId)?.center);
     }));
     function pointInMap(event) {
@@ -804,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const score = Math.hypot(dx, dy) + lateral * 1.5;
             if (score < distance) { distance = score; nearest = city; }
         });
-        if (nearest) selectCity(nearest.id);
+        if (nearest) selectCity(nearest.id, {historyMode: activeId ? 'replace' : 'push'});
     });
 
     function setMapStatus(message) {
@@ -859,9 +1153,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mapReady = true;
             mapStatus.hidden = true;
             updateStats();
-            const requested = hashCity() || activeId;
             const pendingQuery = search.value;
-            if (!requested || !selectCity(requested, {hash: false})) showAtlas({hash: false});
+            restoreNavigation({force: true, refreshMap: true, preserveScroll: true});
             if (pendingQuery) { search.value = pendingQuery; renderSearchResults(); }
             applyView();
         } catch (_) {
@@ -897,13 +1190,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.addEventListener('pointerdown', event => { if (!citySearch.contains(event.target)) closeSearch(); });
     citySearch.addEventListener('focusout', event => { if (!citySearch.contains(event.relatedTarget)) closeSearch(); });
-    window.addEventListener('hashchange', () => {
-        if (!hashCity() || !selectCity(hashCity(), {hash: false})) showAtlas({hash: false});
-    });
+    window.addEventListener('hashchange', () => restoreNavigation());
+    window.addEventListener('popstate', () => restoreNavigation());
     new ResizeObserver(() => { hideMapLens(); renderMarkers(); }).observe(svg);
     svg.tabIndex = 0;
     updateStats();
-    if (!hashCity() || !selectCity(hashCity(), {hash: false})) showAtlas({hash: false});
+    restoreNavigation({force: true, preserveScroll: true});
     applyView();
     initializeMap();
 });

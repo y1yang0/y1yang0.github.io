@@ -4,13 +4,22 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { escapeHTML } = require('hexo-util');
 const { parseTravelMarkdown, serializeJournal } = require(path.join(hexo.base_dir, 'tools/travel-markdown'));
+const { addTravelImageMetadata, applyTravelImageMetadata } = require(path.join(hexo.base_dir, 'tools/travel-image-metadata'));
 
 let mapData;
 let journals = new WeakMap();
+let imageMetadata = new Map();
 const heartCityIds = ['330100', '510600'];
-hexo.extend.filter.register('before_generate', () => {
+hexo.extend.filter.register('before_generate', async () => {
   mapData = undefined;
   journals = new WeakMap();
+  imageMetadata = new Map();
+  const pages = [...hexo.locals.get('pages').toArray(), ...hexo.locals.get('posts').toArray()];
+  for (const page of pages.filter(page => page.travel_journal)) {
+    await addTravelImageMetadata(readJournal(page), {
+      sourceDir: hexo.source_dir, pageSource: page.source, metadata: imageMetadata
+    });
+  }
 });
 
 function readMap() {
@@ -31,6 +40,7 @@ function readJournal(page) {
     cities: readMap().cities,
     onWarning: message => hexo.log.warn(`[旅行相册] ${page?.source || 'travel-journal'}：${message}`)
   });
+  applyTravelImageMetadata(journal, imageMetadata);
   if (page && typeof page === 'object') journals.set(page, journal);
   return journal;
 }
