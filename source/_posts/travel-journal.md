@@ -148,3 +148,38 @@ travel_journal: true
 
 ![晋祠圣母殿](../images/travel/taiyuan-jc4.jpg)
 
+# 南京
+
+## 牛首山
+
+![牛首山第一个地宫，卧佛加穹顶太震撼了](../images/travel/nanjing-nss1.jpg)
+
+![一边看一边哇，感觉中国的很多佛教建筑都是奇观型](../images/travel/nanjing-nss2.jpg)
+
+![有种纷繁复杂的美](../images/travel/nanjing-nss3.jpg)
+
+![壕无人性](../images/travel/nanjing-nss4.jpg)
+
+![很美的长卷](../images/travel/nanjing-nss5.jpg)
+
+## 孙中山陵
+
+![第一次来，人很少](../images/travel/nanjing-zsl1.jpg)
+
+![第二次来，人像下饺子](../images/travel/nanjing-zsl2.jpg)
+
+## 红山森林动物园
+
+![](../images/travel/nanjing-hsdwy1.jpg)
+
+![](../images/travel/nanjing-hsdwy2.jpg)
+
+![](../images/travel/nanjing-hsdwy3.jpg)
+
+![](../images/travel/nanjing-hsdwy4.jpg)
+
+![](../images/travel/nanjing-hsdwy5.jpg)
+
+# 镇江
+
+![](../images/travel/zhenjiang-JSS.jpg)

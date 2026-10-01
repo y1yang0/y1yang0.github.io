@@ -4,22 +4,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { escapeHTML } = require('hexo-util');
 const { parseTravelMarkdown, serializeJournal } = require(path.join(hexo.base_dir, 'tools/travel-markdown'));
-const { buildTravelThumbnails } = require(path.join(hexo.base_dir, 'tools/travel-images'));
 
 let mapData;
 let journals = new WeakMap();
-let travelImages = { photos: new Map(), routes: [] };
 const heartCityIds = ['330100', '510600'];
-hexo.extend.filter.register('before_generate', async () => {
+hexo.extend.filter.register('before_generate', () => {
   mapData = undefined;
   journals = new WeakMap();
-  travelImages = await buildTravelThumbnails({
-    sourceDir: hexo.source_dir,
-    cacheDir: path.join(hexo.base_dir, '.cache/travel-thumbnails')
-  });
 });
-
-hexo.extend.generator.register('travel_thumbnails', () => travelImages.routes);
 
 function readMap() {
   if (!mapData) mapData = JSON.parse(fs.readFileSync(path.join(hexo.source_dir, 'travel/china-cities.json'), 'utf8'));
@@ -39,16 +31,6 @@ function readJournal(page) {
     cities: readMap().cities,
     onWarning: message => hexo.log.warn(`[旅行相册] ${page?.source || 'travel-journal'}：${message}`)
   });
-  for (const city of Object.values(journal.cities)) {
-    for (const entry of city.entries) {
-      for (const photo of entry.photos || []) {
-        if (!photo.src.startsWith('/images/travel/')) continue;
-        const pathname = decodeURIComponent(new URL(photo.src, 'https://travel.invalid').pathname);
-        const thumbnail = travelImages.photos.get(pathname);
-        if (thumbnail) Object.assign(photo, thumbnail);
-      }
-    }
-  }
   if (page && typeof page === 'object') journals.set(page, journal);
   return journal;
 }

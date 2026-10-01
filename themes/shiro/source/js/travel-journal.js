@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapStatus = document.getElementById('travelMapStatus');
     const retry = document.getElementById('travelRetry');
     const tooltip = document.getElementById('travelMapTooltip');
+    const mapLens = document.getElementById('travelMapLens');
+    const magnifiedMap = document.getElementById('travelMagnifiedMap');
+    const lensLabel = document.getElementById('travelMapLensLabel');
+    const mouseMagnifier = window.matchMedia('(any-hover: hover) and (any-pointer: fine)');
     const search = document.getElementById('travelSearch');
     const cityList = document.getElementById('travelCityList');
     const albumCities = document.getElementById('travelAlbumCities');
@@ -23,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewerCaption = document.getElementById('travelViewerCaption');
     const viewerCounter = document.getElementById('travelViewerCounter');
     const viewerStatus = document.getElementById('travelViewerStatus');
+    const viewerStage = document.getElementById('travelViewerStage');
+    const photoLens = document.getElementById('travelPhotoLens');
+    const photoMagnifier = document.getElementById('travelPhotoMagnifier');
+    const photoContext = photoMagnifier?.getContext('2d');
     const allCitiesButton = document.getElementById('travelAllCities');
     const svgNS = 'http://www.w3.org/2000/svg';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -53,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let viewerIndex = 0;
     let viewerTrigger = null;
     let viewerRequest = 0;
-    let viewerLoader = null;
+    let viewerOriginalSrc = '';
     const authoredBox = svg.viewBox.baseVal;
     let initialBox = [authoredBox.x, authoredBox.y, authoredBox.width, authoredBox.height];
     let view = [...initialBox];
@@ -66,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let provinceLabels;
     let provinces = [];
     let paths = new Map();
+    let lensPaths = new Map();
+    let lensCityId = '';
     let heartCityIds = new Set();
 
     const text = value => typeof value === 'string' ? value : '';
@@ -205,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
             photos(entry).forEach(photo => {
                 const src = validImage(photo.src);
                 if (!src) return;
-                const thumbnail = validImage(text(photo.thumbnail)) || src;
                 const figure = make('figure', 'travel-photo');
                 const button = make('button', 'travel-photo-open');
                 const image = make('img');
@@ -220,14 +229,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     image.height = photo.height;
                 }
                 const index = gallery.length;
-                gallery.push({...photo, src, thumbnail, alt});
+                gallery.push({...photo, src, alt});
                 button.addEventListener('click', () => openViewer(index, button));
+                image.addEventListener('load', () => {
+                    image.hidden = false;
+                    button.classList.remove('is-unavailable');
+                    button.querySelector('.travel-photo-error')?.remove();
+                });
                 image.addEventListener('error', () => {
+                    if (!image.complete || image.naturalWidth > 0) return;
                     image.hidden = true;
                     button.classList.add('is-unavailable');
-                    button.append(make('span', 'travel-photo-error', '预览暂时无法载入，点击查看原图'));
-                }, {once: true});
-                image.src = thumbnail;
+                    if (!button.querySelector('.travel-photo-error')) {
+                        button.append(make('span', 'travel-photo-error', '照片暂时无法载入，点击重试'));
+                    }
+                });
+                image.src = src;
                 button.append(image);
                 figure.append(button);
                 if (text(photo.caption)) figure.append(make('figcaption', '', photo.caption));
@@ -243,8 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const scale = matrix ? Math.max(.01, Math.hypot(matrix.a, matrix.b)) : 1;
         markers.replaceChildren();
         const selected = root.dataset.view === 'album' ? cityById.get(activeId) : null;
-        const visible = [...heartCityIds].map(id => cityById.get(id)).filter(Boolean);
+        const markerIds = new Set(heartCityIds);
+        if (!selected) cities.filter(city => hasRecord(city.id)).forEach(city => markerIds.add(city.id));
+        const visible = [...markerIds].map(id => cityById.get(id)).filter(Boolean);
         if (selected && !heartCityIds.has(selected.id)) visible.push(selected);
+        const pins = [];
         visible.forEach(city => {
             if (!Array.isArray(city.center)) return;
             const [cx, cy] = city.center;
@@ -252,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (heartCityIds.has(city.id)) {
                 group.append(svgNode('use', {href: '#travelMapHeart', transform: `translate(${cx} ${cy}) scale(${1 / scale})`, 'class': 'travel-map-heart'}));
             } else {
-                group.append(svgNode('circle', {cx, cy, r: 5 / scale, 'class': 'travel-map-marker'}));
+                group.append(svgNode('circle', {cx, cy, r: (selected ? 5 : 3) / scale, 'class': 'travel-map-marker'}));
             }
             if (selected?.id === city.id) {
                 const alignLeft = cx > view[0] + view[2] * .8;
@@ -263,7 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.append(label);
             }
             markers.append(group);
+            pins.push({city, group});
         });
+        if (!selected) renderRecordedCityLabels(pins, scale);
         renderProvinceLabels(scale);
         const insetLabel = canvas.querySelector('.travel-map-inset-label');
         if (insetLabel) {
@@ -274,6 +296,56 @@ document.addEventListener('DOMContentLoaded', () => {
             insetLabel.setAttribute('x', String(insetWidth / 2));
             insetLabel.setAttribute('text-anchor', 'middle');
         }
+    }
+    function renderRecordedCityLabels(pins, scale) {
+        const margin = 4 / scale;
+        const frame = [view[0] + margin, view[1] + margin, view[0] + view[2] - margin, view[1] + view[3] - margin];
+        const recorded = pins.filter(({city}) => hasRecord(city.id) && city.center[0] >= frame[0] && city.center[0] <= frame[2]
+            && city.center[1] >= frame[1] && city.center[1] <= frame[3]);
+        const radius = 5 / scale;
+        const occupied = pins.map(({city: {center: [x, y]}}) => [x - radius, y - radius, x + radius, y + radius]);
+        const padding = 3 / scale;
+        const overlap = box => occupied.reduce((sum, other) => sum
+            + Math.max(0, Math.min(box[2] + padding, other[2]) - Math.max(box[0] - padding, other[0]))
+            * Math.max(0, Math.min(box[3] + padding, other[3]) - Math.max(box[1] - padding, other[1])), 0);
+        const offsets = [[8, 0], [-8, 0], [0, -12], [0, 12]];
+        [18, 30, 42, 54, 66, 78, 90, 108, 126, 144].forEach(distance => {
+            [[1, 0], [-1, 0], [0, -1], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1]]
+                .forEach(([dx, dy]) => offsets.push([dx * distance, dy * distance]));
+        });
+        // Give tightly clustered cities first choice; displaced names retain
+        // a thin guide line to their actual locations.
+        const density = city => recorded.reduce((count, other) => count
+            + Number(other.city.id !== city.id && Math.hypot(other.city.center[0] - city.center[0], other.city.center[1] - city.center[1]) * scale < 60), 0);
+        recorded.sort((a, b) => density(b.city) - density(a.city) || a.city.center[1] - b.city.center[1]);
+        recorded.forEach(({city, group}) => {
+            const [cx, cy] = city.center;
+            const label = svgNode('text', {'class': 'travel-map-label', 'dominant-baseline': 'central'});
+            label.textContent = shortName(city.name);
+            label.style.fontSize = `${(scale < .45 ? 10 : 12) / scale}px`;
+            label.style.strokeWidth = `${3 / scale}px`;
+            group.append(label);
+            const box = label.getBBox();
+            const candidates = offsets.map(([dx, dy]) => {
+                let x = cx + dx / scale - (dx < 0 ? box.width : dx === 0 ? box.width / 2 : 0);
+                let y = cy + dy / scale;
+                x = Math.max(frame[0] - box.x, Math.min(frame[2] - box.x - box.width, x));
+                y = Math.max(frame[1] - box.y, Math.min(frame[3] - box.y - box.height, y));
+                const bounds = [x + box.x, y + box.y, x + box.x + box.width, y + box.y + box.height];
+                return {x, y, bounds, overlap: overlap(bounds)};
+            });
+            const placement = candidates.find(candidate => candidate.overlap === 0)
+                || candidates.reduce((best, candidate) => candidate.overlap < best.overlap ? candidate : best);
+            label.setAttribute('x', String(placement.x));
+            label.setAttribute('y', String(placement.y));
+            occupied.push(placement.bounds);
+            const [left, top, right, bottom] = placement.bounds;
+            const edgeX = Math.max(left, Math.min(right, cx));
+            const edgeY = Math.max(top, Math.min(bottom, cy));
+            if (Math.hypot(edgeX - cx, edgeY - cy) * scale > 12) {
+                group.insertBefore(svgNode('path', {d: `M${cx} ${cy}L${edgeX} ${edgeY}`, 'class': 'travel-map-city-leader'}), label);
+            }
+        });
     }
     function renderProvinceLabels(scale) {
         if (!provinceLabels) return;
@@ -288,8 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const box = label.getBBox();
             return [box.x, box.y, box.x + box.width, box.y + box.height];
         });
-        heartCityIds.forEach(id => {
-            const center = cityById.get(id)?.center;
+        const cityNames = new Set([...markers.querySelectorAll('.travel-map-label')].map(label => label.textContent));
+        markers.querySelectorAll('.travel-map-pin').forEach(pin => {
+            const center = cityById.get(pin.dataset.cityId)?.center;
             if (center) occupied.push([center[0] - 5 / scale, center[1] - 5 / scale, center[0] + 5 / scale, center[1] + 5 / scale]);
         });
         const fits = box => box[0] >= frame[0] && box[1] >= frame[1] && box[2] <= frame[2] && box[3] <= frame[3];
@@ -307,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             || (national ? area(a) - area(b) : 0));
         ordered.forEach(province => {
             const name = provinceName(province.name);
-            if (selected && name === shortName(selected.name)) return;
+            if (cityNames.has(name)) return;
             const bounds = province.bounds;
             if (bounds && (bounds[2] < view[0] || bounds[0] > view[0] + view[2] || bounds[3] < view[1] || bounds[1] > view[1] + view[3])) return;
             const label = svgNode('text', {'class': 'travel-map-province-label', 'text-anchor': 'middle', 'dominant-baseline': 'central'});
@@ -352,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function selectCity(id, {scroll = false, focus = false, hash = true} = {}) {
         const city = cityById.get(String(id));
         if (!city) return false;
+        hideMapLens();
         if (viewer?.open) viewer.close();
         const enteringAlbum = root.dataset.view !== 'album';
         activeId = city.id;
@@ -379,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     function showAtlas({hash = true, scroll = false, focus = false} = {}) {
+        hideMapLens();
         cancelViewAnimation();
         if (viewer?.open) viewer.close();
         activeId = '';
@@ -400,13 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     allCitiesButton.addEventListener('click', () => showAtlas({scroll: true, focus: true}));
     function cancelViewerLoad() {
+        viewerOriginalSrc = '';
+        hidePhotoLens();
         viewerRequest += 1;
-        if (viewerLoader) {
-            viewerLoader.onload = null;
-            viewerLoader.onerror = null;
-            viewerLoader.removeAttribute('src');
-            viewerLoader = null;
-        }
+    }
+    async function finishViewerLoad(request, src) {
+        if (request !== viewerRequest || !viewer.open || viewerImage.currentSrc !== src) return;
+        await viewerImage.decode().catch(() => {});
+        if (request !== viewerRequest || !viewer.open || !viewerImage.complete
+            || !viewerImage.naturalWidth || viewerImage.currentSrc !== src) return;
+        viewerImage.hidden = false;
+        viewerImage.setAttribute('aria-busy', 'false');
+        viewerStatus.textContent = '';
+        viewerOriginalSrc = src;
     }
     function viewerPhoto(index) {
         if (!gallery.length) return;
@@ -416,36 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const photo = gallery[viewerIndex];
         viewerImage.alt = photo.alt;
         viewerImage.setAttribute('aria-busy', 'true');
-        viewerImage.hidden = photo.thumbnail === photo.src;
-        if (photo.thumbnail !== photo.src) viewerImage.src = photo.thumbnail;
-        else viewerImage.removeAttribute('src');
+        viewerImage.hidden = true;
         viewerStatus.textContent = '高清原图加载中…';
         viewerCaption.textContent = text(photo.caption) || photo.alt;
         viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}`;
         viewer.querySelectorAll('[data-prev-photo],[data-next-photo]').forEach(button => { button.disabled = gallery.length < 2; });
-        const original = new Image();
-        viewerLoader = original;
-        original.decoding = 'async';
-        original.onload = async () => {
-            // Decode before replacing the preview, and ignore a photo that was
-            // closed or superseded while its original was still downloading.
-            await original.decode().catch(() => {});
-            if (request !== viewerRequest || !viewer.open) return;
-            viewerImage.src = photo.src;
-            viewerImage.hidden = false;
-            viewerImage.setAttribute('aria-busy', 'false');
-            viewerStatus.textContent = '';
-            viewerLoader = null;
-        };
-        original.onerror = () => {
-            if (request !== viewerRequest || !viewer.open) return;
-            viewerImage.setAttribute('aria-busy', 'false');
-            viewerStatus.textContent = photo.thumbnail !== photo.src && !viewerImage.hidden
-                ? '高清原图暂时无法载入，可先查看预览。'
-                : '照片暂时无法载入，请稍后重试。';
-            viewerLoader = null;
-        };
-        original.src = photo.src;
+        viewerImage.src = photo.src;
+        if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, photo.src);
     }
     function openViewer(index, trigger) {
         if (!viewer || !gallery[index]) return;
@@ -474,15 +532,75 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '';
     });
+    viewerImage?.addEventListener('load', () => finishViewerLoad(viewerRequest, gallery[viewerIndex]?.src));
     viewerImage?.addEventListener('error', () => {
-        if (!viewer.open) return;
-        if (viewerImage.complete && viewerImage.naturalWidth > 0) return;
+        if (!viewer.open || !viewerImage.complete || viewerImage.naturalWidth > 0) return;
+        viewerOriginalSrc = '';
+        hidePhotoLens();
         viewerImage.hidden = true;
-        if (!viewerLoader) {
-            viewerImage.setAttribute('aria-busy', 'false');
-            viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
-        }
+        viewerImage.setAttribute('aria-busy', 'false');
+        viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
     });
+    function hidePhotoLens() {
+        if (photoLens) photoLens.hidden = true;
+        viewer?.classList.remove('is-photo-magnifying');
+    }
+    function showPhotoLens(event) {
+        if (!photoLens || !photoContext || !viewer.open || !viewerOriginalSrc
+            || viewerImage.currentSrc !== viewerOriginalSrc || !viewerImage.complete
+            || !viewerImage.naturalWidth || event.pointerType !== 'mouse'
+            || !mouseMagnifier.matches || event.buttons) {
+            hidePhotoLens();
+            return;
+        }
+        const bounds = viewerImage.getBoundingClientRect();
+        const style = getComputedStyle(viewerImage);
+        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const contentWidth = viewerImage.clientWidth - paddingX;
+        const contentHeight = viewerImage.clientHeight - paddingY;
+        const scale = Math.min(contentWidth / viewerImage.naturalWidth, contentHeight / viewerImage.naturalHeight);
+        if (!scale) { hidePhotoLens(); return; }
+        const width = viewerImage.naturalWidth * scale;
+        const height = viewerImage.naturalHeight * scale;
+        const x = event.clientX - bounds.left - viewerImage.clientLeft - parseFloat(style.paddingLeft) - (contentWidth - width) / 2;
+        const y = event.clientY - bounds.top - viewerImage.clientTop - parseFloat(style.paddingTop) - (contentHeight - height) / 2;
+        if (x < 0 || y < 0 || x > width || y > height) { hidePhotoLens(); return; }
+        const stageBounds = viewerStage.getBoundingClientRect();
+        photoLens.hidden = false;
+        photoLens.style.left = `${event.clientX - stageBounds.left}px`;
+        photoLens.style.top = `${event.clientY - stageBounds.top}px`;
+        const size = photoLens.clientWidth;
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const pixels = Math.round(size * ratio);
+        if (photoMagnifier.width !== pixels || photoMagnifier.height !== pixels) {
+            photoMagnifier.width = photoMagnifier.height = pixels;
+        }
+        photoContext.setTransform(pixels / size, 0, 0, pixels / size, 0, 0);
+        photoContext.clearRect(0, 0, size, size);
+        const sourceSize = size / (scale * 3);
+        // Canvas clips source areas beyond the photo, preserving the pointer's
+        // exact position and the paper-colored margins at the image edges.
+        try {
+            photoContext.drawImage(viewerImage,
+                x / scale - sourceSize / 2, y / scale - sourceSize / 2, sourceSize, sourceSize,
+                0, 0, size, size);
+        } catch (_) {
+            hidePhotoLens();
+            return;
+        }
+        viewer.classList.add('is-photo-magnifying');
+    }
+    viewerImage?.addEventListener('pointermove', showPhotoLens);
+    viewerImage?.addEventListener('pointerleave', hidePhotoLens);
+    viewerImage?.addEventListener('pointerdown', hidePhotoLens);
+    viewer?.addEventListener('scroll', hidePhotoLens, {passive: true});
+    viewer?.addEventListener('keydown', hidePhotoLens);
+    window.addEventListener('scroll', hidePhotoLens, {passive: true});
+    window.addEventListener('resize', hidePhotoLens, {passive: true});
+    window.addEventListener('blur', hidePhotoLens);
+    mouseMagnifier.addEventListener('change', hidePhotoLens);
+    if (viewerImage) new ResizeObserver(hidePhotoLens).observe(viewerImage);
 
     function cancelViewAnimation() {
         cancelAnimationFrame(viewAnimation);
@@ -516,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewAnimation = requestAnimationFrame(step);
     }
     function applyView() {
+        hideMapLens();
         const zoom = initialBox[2] / view[2];
         const marginX = initialBox[2] * .04;
         const marginY = initialBox[3] * .04;
@@ -548,8 +667,59 @@ document.addEventListener('DOMContentLoaded', () => {
         point.y = event.clientY;
         return point.matrixTransform(svg.getScreenCTM().inverse());
     }
+    function hideMapLens() {
+        if (mapLens) mapLens.hidden = true;
+        root.classList.remove('is-magnifying');
+    }
+    function initializeMapLens() {
+        if (!magnifiedMap) return;
+        // Reuse the local vector geometry without downloading or rasterizing
+        // the map. The lens stays outside the interactive SVG hit targets.
+        const contents = canvas.cloneNode(true);
+        contents.removeAttribute('id');
+        contents.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+        contents.querySelectorAll('text,defs,.travel-map-markers,.travel-map-province-labels').forEach(node => node.remove());
+        magnifiedMap.replaceChildren(contents);
+        lensPaths = new Map();
+        lensCityId = '';
+        contents.querySelectorAll('path[data-city-id]').forEach(path => {
+            path.classList.remove('is-selected');
+            const id = path.dataset.cityId;
+            if (!lensPaths.has(id)) lensPaths.set(id, []);
+            lensPaths.get(id).push(path);
+        });
+    }
+    function showMapLens(event, city) {
+        if (!mapLens || !magnifiedMap || !mapReady || root.dataset.view !== 'atlas'
+            || event.pointerType !== 'mouse' || !mouseMagnifier.matches || event.buttons || drag) {
+            hideMapLens();
+            return false;
+        }
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return false;
+        const scale = Math.hypot(matrix.a, matrix.b);
+        if (!scale) return false;
+        const point = pointInMap(event);
+        const bounds = mapLens.parentElement.getBoundingClientRect();
+        mapLens.hidden = false;
+        mapLens.style.left = `${event.clientX - bounds.left}px`;
+        mapLens.style.top = `${event.clientY - bounds.top}px`;
+        const size = mapLens.clientWidth / (scale * 3);
+        magnifiedMap.setAttribute('viewBox', `${point.x - size / 2} ${point.y - size / 2} ${size} ${size}`);
+        const id = city?.id || '';
+        if (lensCityId !== id) {
+            lensPaths.get(lensCityId)?.forEach(path => path.classList.remove('is-lens-target'));
+            lensPaths.get(id)?.forEach(path => path.classList.add('is-lens-target'));
+            lensCityId = id;
+        }
+        lensLabel.textContent = city ? cityDescription(city) : '移到城市上，点击查看';
+        root.classList.add('is-magnifying');
+        tooltip.hidden = true;
+        return true;
+    }
     svg.addEventListener('pointerdown', event => {
         if (!mapReady || event.button !== 0 || !event.isPrimary) return;
+        hideMapLens();
         suppressClick = false;
         pendingMapCity = '';
         cancelViewAnimation();
@@ -573,6 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const city = cityById.get(event.target.closest('[data-city-id]')?.dataset.cityId);
+        if (showMapLens(event, city)) return;
         if (!city) { tooltip.hidden = true; return; }
         tooltip.textContent = `${shortName(city.name)}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
         tooltip.hidden = false;
@@ -594,7 +765,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     svg.addEventListener('pointerup', endDrag);
     svg.addEventListener('pointercancel', endDrag);
-    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; hideMapLens(); });
+    svg.addEventListener('pointercancel', hideMapLens);
+    svg.addEventListener('keydown', hideMapLens);
+    window.addEventListener('scroll', hideMapLens, {passive: true});
+    window.addEventListener('resize', hideMapLens, {passive: true});
+    window.addEventListener('blur', hideMapLens);
+    mouseMagnifier.addEventListener('change', hideMapLens);
     svg.addEventListener('click', event => {
         if (suppressClick) {
             suppressClick = false;
@@ -636,6 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (retry) mapStatus.append(retry);
     }
     function initializeMap() {
+        hideMapLens();
         mapReady = false;
         if (retry) retry.hidden = true;
         try {
@@ -670,6 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const city = cityById.get(id);
                 if (title && city) title.textContent = cityDescription(city);
             }));
+            initializeMapLens();
             markers = canvas.querySelector('.travel-map-markers');
             if (!markers) throw new Error('Missing map markers');
             provinceLabels = canvas.querySelector('.travel-map-province-labels');
@@ -721,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', () => {
         if (!hashCity() || !selectCity(hashCity(), {hash: false})) showAtlas({hash: false});
     });
-    new ResizeObserver(() => renderMarkers()).observe(svg);
+    new ResizeObserver(() => { hideMapLens(); renderMarkers(); }).observe(svg);
     svg.tabIndex = 0;
     updateStats();
     if (!hashCity() || !selectCity(hashCity(), {hash: false})) showAtlas({hash: false});
