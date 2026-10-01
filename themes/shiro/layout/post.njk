@@ -2,20 +2,16 @@
 {% from "_macro/ui.njk" import meta, render_tag, toc_button with context %}
 {% block content %}
 {% set article_toc = "" %}
-{% if theme.article.show_toc and not page.travel_journal %}{% set article_toc = toc(page.content, {list_number: false}) %}{% endif %}
-<article class="content-article post-page{% if article_toc %} has-contents{% else %} no-contents{% endif %}{% if page.travel_journal %} travel-article{% endif %}">
+{% if theme.article.show_toc %}{% set article_toc = toc(page.content, {list_number: false}) %}{% endif %}
+<article class="content-article post-page{% if article_toc %} has-contents{% else %} no-contents{% endif %}">
     <header class="article-header"><a class="eyebrow back-link" href="{{ url_for('/') }}#writing">← Back to the notebook</a><h1>{{ page.title }}</h1>{{ meta(page) }}</header>
-    {% if page.travel_journal %}
-    {% include "_partial/components/travel-journal.njk" %}
-    {% else %}
     <div class="reading-layout">
         <div class="prose-shiro">{{ page.content }}</div>
         {% if article_toc %}<aside class="article-index"><p class="eyebrow">Contents</p><nav aria-label="Table of contents">{{ article_toc }}</nav></aside>{% endif %}
     </div>
-    {% endif %}
     {% if page.tags.length %}<div class="post-tags">{% for tag in page.tags.toArray() %}{{ render_tag(tag) }}{% endfor %}</div>{% endif %}
-    {% if not page.travel_journal and (page.prev or page.next) %}<nav class="post-navigation" aria-label="Adjacent notes">{% if page.prev %}<a class="post-newer" href="{{ url_for(page.prev.path) }}"><span>← Newer note</span><strong>{{ page.prev.title }}</strong></a>{% endif %}{% if page.next %}<a class="post-older" href="{{ url_for(page.next.path) }}"><span>Older note →</span><strong>{{ page.next.title }}</strong></a>{% endif %}</nav>{% endif %}
+    {% if page.prev or page.next %}<nav class="post-navigation" aria-label="Adjacent notes">{% if page.prev %}<a class="post-newer" href="{{ url_for(page.prev.path) }}"><span>← Newer note</span><strong>{{ page.prev.title }}</strong></a>{% endif %}{% if page.next %}<a class="post-older" href="{{ url_for(page.next.path) }}"><span>Older note →</span><strong>{{ page.next.title }}</strong></a>{% endif %}</nav>{% endif %}
     {% include "_partial/comments/disqus.njk" %}
-    {% if theme.article.show_toc and not page.travel_journal %}{{ toc_button(article_toc) }}{% endif %}
+    {% if theme.article.show_toc %}{{ toc_button(article_toc) }}{% endif %}
 </article>
 {% endblock %}

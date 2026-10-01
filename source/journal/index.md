@@ -1,8 +1,6 @@
 ---
-layout: post
+layout: journal
 title: China Journal
-date: 2026-09-30 12:00:00 +0800
-categories: [Misc]
 description: 山河足迹
 travel_journal: true
 ---

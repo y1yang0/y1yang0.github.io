@@ -1,0 +1,7 @@
+{% extends "_layout.njk" %}
+{% block content %}
+<article class="content-article standalone-page travel-article">
+    <header class="article-header"><h1>{{ page.title }}</h1></header>
+    {% include "_partial/components/travel-journal.njk" %}
+</article>
+{% endblock %}

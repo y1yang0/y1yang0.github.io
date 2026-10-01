@@ -1,4 +1,4 @@
-.travel-article.post-page.no-contents :is(.article-header,.post-navigation) {max-width:none;}
+.travel-article.standalone-page {max-width:none;}
 .travel-article .article-header {padding-bottom:20px;margin-bottom:0;}
 .travel-article .article-header h1 {letter-spacing:3px;margin-bottom:16px;}
 .travel-journal.prose-shiro {max-width:none;font-size:14px;line-height:1.8;}
@@ -8,8 +8,8 @@
 .travel-art {display:block;width:100%;height:auto;}
 .travel-atlas-layout {display:grid;grid-template-columns:270px minmax(0,1fr);gap:36px;padding-top:28px;align-items:start;scroll-margin-top:0;}
 .travel-journal[data-view=atlas] .travel-atlas-layout {display:block;}
-.travel-journal[data-view=atlas] .travel-atlas {max-width:1000px;margin-inline:auto;}
-.travel-journal[data-view=atlas] .travel-map-stage {aspect-ratio:auto;height:clamp(380px,70vh,650px);}
+.travel-journal[data-view=atlas] .travel-atlas {max-width:1200px;margin-inline:auto;}
+.travel-journal[data-view=atlas] .travel-map-stage {aspect-ratio:auto;height:clamp(460px,78vh,820px);}
 .travel-journal[data-view=album] .travel-atlas {position:sticky;top:calc(var(--header-height) + 20px);}
 .travel-journal[data-view=album] .travel-map-stage {aspect-ratio:1.175;}
 .travel-journal[data-view=album] .travel-atlas-heading {--travel-heading-size:10px;gap:8px;}

@@ -13,7 +13,7 @@
             document.documentElement.classList.toggle('dark', theme === 'dark');
         })();
     </script>
-    <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
+    <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() or page.travel_journal %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
 
     <!-- SEO: description -->
     {% set seo_desc = page.description | default(page.excerpt | striptags | trim | truncate(160, true, '...') | default(config.description, true), true) %}
@@ -28,7 +28,9 @@
     {% endif %}
 
     <!-- SEO: canonical -->
-    <link rel="canonical" href="{{ full_url_for(path) }}" />
+    {% set canonical_path = path %}
+    {% if page.travel_journal %}{% set canonical_path = 'journal/' %}{% endif %}
+    <link rel="canonical" href="{{ full_url_for(canonical_path) }}" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="{% if is_post() %}article{% else %}website{% endif %}" />
@@ -36,7 +38,7 @@
     {% if seo_desc %}
     <meta property="og:description" content="{{ seo_desc }}" />
     {% endif %}
-    <meta property="og:url" content="{{ full_url_for(path) }}" />
+    <meta property="og:url" content="{{ full_url_for(canonical_path) }}" />
     <meta property="og:site_name" content="{{ config.title | default("白夜書簡", true) }}" />
     {% if is_post() %}
     <meta property="article:published_time" content="{{ page.date.toISOString() }}" />

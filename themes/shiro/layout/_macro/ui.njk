@@ -1,7 +1,7 @@
 {% macro meta(post) %}
 <div class="article-meta">
     <span class="article-meta-item"><a href="{{ url_for('archives/' + date(post.date, 'YYYY') + '/') }}"><time datetime="{{ date(post.date, 'YYYY-MM-DD') }}">{{ date(post.date, 'MMMM D, YYYY') }}</time></a></span>
-    {% if post.content and not post.travel_journal %}<span class="article-meta-item"><span aria-hidden="true">·</span><span>{{ wordcount(post.content) }} words</span></span>{% endif %}
+    {% if post.content %}<span class="article-meta-item"><span aria-hidden="true">·</span><span>{{ wordcount(post.content) }} words</span></span>{% endif %}
     {% if post.categories.length %}<span class="article-meta-item"><span aria-hidden="true">·</span><span>{% for cat in post.categories.toArray() %}<a href="{{ url_for(cat.path) }}">{{ cat.name }}</a>{% if not loop.last %}<span aria-hidden="true"> / </span>{% endif %}{% endfor %}</span></span>{% endif %}
 </div>
 {% endmacro %}

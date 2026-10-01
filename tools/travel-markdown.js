@@ -37,8 +37,8 @@ function normalizePhotoUrl(value) {
   if (/^https?:\/\//i.test(destination)) {
     try { return new URL(destination).href; } catch (_) { return ''; }
   }
-  // Image paths in a dated post are resolved from the site root. A leading
-  // ./ or ../ is an authoring convenience, never a route to the post folder.
+  // Travel image paths are resolved from the site root. A leading ./ or ../
+  // is an authoring convenience, never a route to the page folder.
   const match = destination.match(/^(?:(?:\.{1,2}\/)+)?\/?images\/travel\/(.+)$/u);
   if (!match || match[1].includes('\\')) return '';
   try {

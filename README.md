@@ -25,7 +25,7 @@ The warm, dark, and white themes remember the reader's choice. Fonts are local o
 
 ## Travel albums
 
-Put photos in `source/images/travel/`, then edit `source/_posts/travel-journal.md`. Each city heading starts an album; image alt text becomes its caption:
+Put photos in `source/images/travel/`, then edit `source/journal/index.md`. Journal is a standalone page at `/journal/`, separate from blog posts, archives, categories, and tags. Each city heading starts an album; image alt text becomes its caption:
 
 ```markdown
 # 杭州
@@ -35,6 +35,6 @@ Put photos in `source/images/travel/`, then edit `source/_posts/travel-journal.m
 ![自划船](/images/travel/hangzhou-xihu1.jpg)
 ```
 
-Keep `travel_journal: true` in the post's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `source/travel/china-cities.json`. Hexo embeds the map SVG and city index in the article, so the map does not need a separate data request or an external map service.
+Keep `layout: journal` and `travel_journal: true` in the page's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `source/travel/china-cities.json`. Hexo embeds the map SVG and city index in the page, so the map does not need a separate data request or an external map service. The previous dated URL redirects to `/journal/` and preserves city selections.
 
 City albums and the full-screen viewer both use the original image files directly. Album images load lazily as they approach the viewport, and the viewer provides a magnifier for inspecting details. Keep adding photos and Markdown links as before; no image conversion or preview generation is needed.
