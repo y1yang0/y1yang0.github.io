@@ -53,6 +53,10 @@ travel_journal: true
 
 ![水杉树](../images/travel/hangzhou-qsh.jpg)
 
+## 都市随拍
+
+![](../images/travel/hangzhou-dushi1.jpg)
+
 ## 宫宴
 
 ![吃个饭都这么多花样](../images/travel/hangzhou-gongyan.jpg)
@@ -117,6 +121,12 @@ travel_journal: true
 
 ![高迁古村](../images/travel/taizhou-gaoqiangucun.jpg)
 
+# 温州
+
+## 雁荡山
+
+![超长玻璃栈道](../images/travel/wenzhou-yds1.jpg)
+
 # 上海
 
 ## 外滩
@@ -168,6 +178,9 @@ travel_journal: true
 ## 鲁迅故里
 
 ![鲁迅故居的夜](../images/travel/shaoxing-lx1.jpg)
+
+![鲁迅故居的夜](../images/travel/shaoxing-lx2.jpg)
+
 
 ## 香炉峰
 

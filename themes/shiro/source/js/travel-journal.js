@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityList = document.getElementById('travelCityList');
     const albumCities = document.getElementById('travelAlbumCities');
     const citySearch = document.getElementById('travelCitySearch');
+    const searchToggle = document.getElementById('travelSearchToggle');
+    const searchPanel = document.getElementById('travelSearchPanel');
     const searchResults = document.getElementById('travelSearchResults');
     const searchEmpty = document.getElementById('travelSearchEmpty');
     const details = document.getElementById('travelDetails');
@@ -162,6 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
         search.removeAttribute('aria-activedescendant');
         activeResult = -1;
         cityList.querySelectorAll('[role="option"]').forEach(option => option.setAttribute('aria-selected', 'false'));
+    }
+    function closeSearchPanel({focus = false} = {}) {
+        closeSearch();
+        searchPanel.hidden = true;
+        searchToggle.setAttribute('aria-expanded', 'false');
+        if (focus) searchToggle.focus({preventScroll: true});
+    }
+    function openSearchPanel() {
+        hideProvinceFocus();
+        searchPanel.hidden = false;
+        searchToggle.setAttribute('aria-expanded', 'true');
+        search.focus({preventScroll: true});
     }
     function setActiveResult(index, scroll = false) {
         const options = [...cityList.querySelectorAll('[role="option"]')];
@@ -525,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tooltip.hidden = true;
         cancelViewAnimation();
         if (enteringAlbum) view = [...initialBox];
-        closeSearch();
+        closeSearchPanel();
         search.value = '';
         paths.forEach((cityPaths, cityId) => cityPaths.forEach(path => path.classList.toggle('is-selected', cityId === activeId)));
         focusCityMap(city, {animate: scroll});
@@ -553,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         root.dataset.view = 'atlas';
         details.hidden = true;
         allCitiesButton.hidden = true;
-        closeSearch();
+        closeSearchPanel();
         search.value = '';
         tooltip.hidden = true;
         paths.forEach(cityPaths => cityPaths.forEach(path => path.classList.remove('is-selected')));
@@ -1304,13 +1318,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     retry?.addEventListener('click', initializeMap);
+    searchToggle.addEventListener('click', () => {
+        if (searchPanel.hidden) openSearchPanel();
+        else closeSearchPanel();
+    });
     search.addEventListener('input', event => { if (!event.isComposing) renderSearchResults(); });
     search.addEventListener('compositionend', renderSearchResults);
     search.addEventListener('focus', () => { if (search.value.trim()) renderSearchResults(); });
     search.addEventListener('keydown', event => {
         if (event.isComposing || event.keyCode === 229) return;
         if (event.key === 'Escape') {
-            if (!searchResults.hidden) { event.preventDefault(); closeSearch(); }
+            event.preventDefault();
+            closeSearchPanel({focus: true});
             return;
         }
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -1327,8 +1346,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cityList.querySelectorAll('[role="option"]')[activeResult]?.click();
         }
     });
-    document.addEventListener('pointerdown', event => { if (!citySearch.contains(event.target)) closeSearch(); });
-    citySearch.addEventListener('focusout', event => { if (!citySearch.contains(event.relatedTarget)) closeSearch(); });
+    document.addEventListener('pointerdown', event => { if (!citySearch.contains(event.target)) closeSearchPanel(); });
+    citySearch.addEventListener('focusout', event => { if (!citySearch.contains(event.relatedTarget)) closeSearchPanel(); });
     window.addEventListener('hashchange', () => restoreNavigation());
     window.addEventListener('popstate', () => restoreNavigation());
     new ResizeObserver(() => { hideProvinceFocus(); renderMarkers(); }).observe(svg);

@@ -2,13 +2,18 @@
 {% set travel_stats = travel_journal_stats(page) %}
 <div class="travel-journal prose-shiro" id="travelJournal" data-view="atlas" lang="zh-CN">
     <div class="travel-atlas-layout">
-        <section class="travel-atlas" aria-labelledby="travelMapHeading">
-            <header class="travel-atlas-heading"><p class="travel-kicker" id="travelMapHeading">TRAVEL ATLAS</p><div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>城市点亮率</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>城市</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" hidden>← 全部城市</button></div></header>
+        <section class="travel-atlas" aria-label="城市旅行地图">
+            <header class="travel-atlas-heading">
+                <div class="travel-search-control" id="travelCitySearch">
+                    <button type="button" class="travel-search-toggle" id="travelSearchToggle" aria-controls="travelSearchPanel" aria-expanded="false"><span aria-hidden="true">⌕</span>搜索城市</button>
+                    <div class="travel-city-search" id="travelSearchPanel" hidden>
+                        <label class="travel-search"><span class="visually-hidden">搜索城市</span><input type="search" id="travelSearch" role="combobox" placeholder="输入城市名称" autocomplete="off" aria-autocomplete="list" aria-controls="travelCityList" aria-expanded="false"></label>
+                        <div class="travel-search-results" id="travelSearchResults" hidden><div id="travelCityList" role="listbox" aria-label="城市搜索结果"></div><p id="travelSearchEmpty" class="travel-search-empty" role="status" hidden>未找到城市</p></div>
+                    </div>
+                </div>
+                <div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>城市点亮率</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>城市</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" hidden>← 全部城市</button></div>
+            </header>
             <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的城市" hidden></nav>
-            <div class="travel-city-search" id="travelCitySearch">
-                <label class="travel-search"><span class="visually-hidden">搜索城市</span><span aria-hidden="true">⌕</span><input type="search" id="travelSearch" role="combobox" placeholder="搜索城市" autocomplete="off" aria-autocomplete="list" aria-controls="travelCityList" aria-expanded="false"></label>
-                <div class="travel-search-results" id="travelSearchResults" hidden><div id="travelCityList" role="listbox" aria-label="城市搜索结果"></div><p id="travelSearchEmpty" class="travel-search-empty" role="status" hidden>未找到城市</p></div>
-            </div>
             <div class="travel-map-stage">
                 <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">中国城市旅行地图</title><g id="travelMapCanvas" class="travel-map-canvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
                 <div id="travelMapStatus" class="travel-map-status" role="status" hidden><button type="button" id="travelRetry" hidden>重新初始化</button></div>
