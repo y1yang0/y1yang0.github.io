@@ -15,6 +15,16 @@ travel_journal: true
 
 ![西湖文化广场的桥上看京杭大运河，景美故事更美](../images/travel/hangzhou-dayunhe.jpg)
 
+## 塘栖古镇
+
+![塘栖古镇](../images/travel/hangzhou-tqgz.jpg)
+
+# 湖州
+
+## 浙江自然博物馆安吉馆
+
+![现场很壮观](../images/travel/huzhou-zrbwg.jpg)
+
 # 宁波
 
 ## 海天一洲
@@ -34,6 +44,12 @@ travel_journal: true
 ![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy4.jpg)
 
 ![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy6.jpg)
+
+# 嘉兴
+
+## 盐官古城
+
+![去盐官也不一定非得看潮](../images/travel/jiaxing-yanguan1.jpg)
 
 # 金华
 
