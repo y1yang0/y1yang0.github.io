@@ -13,11 +13,49 @@ travel_journal: true
 
 ![蛤蟆峰看苏堤，第一次约会的地方](../images/travel/hangzhou-xihu2.jpg)
 
+## 京杭大运河
+
 ![西湖文化广场的桥上看京杭大运河，景美故事更美](../images/travel/hangzhou-dayunhe.jpg)
 
 ## 塘栖古镇
 
 ![塘栖古镇](../images/travel/hangzhou-tqgz.jpg)
+
+## 太子尖
+
+![还没有成为网红景点的太子尖](../images/travel/hangzhou-tzj.jpg)
+
+## 龙王山
+
+![冬天的龙王山](../images/travel/hangzhou-lws1.jpg)
+
+![夏天的龙王山](../images/travel/hangzhou-lws2.jpg)
+
+## 浙西天池
+
+![还未禁止入内的浙西天池](../images/travel/hangzhou-zxtc1.jpg)
+
+![浙西天池可见月](../images/travel/hangzhou-zxtc2.jpg)
+
+## 瑶琳仙境
+
+![溶洞](../images/travel/hangzhou-ylxj1.jpg)
+
+## 王位山
+
+![盘山公路](../images/travel/hangzhou-wws.jpg)
+
+## 农田随拍
+
+![农田随拍](../images/travel/hangzhou-nongtian.jpg)
+
+## 青山湖
+
+![水杉树](../images/travel/hangzhou-qsh.jpg)
+
+## 宫宴
+
+![吃个饭都这么多花样](../images/travel/hangzhou-gongyan.jpg)
 
 # 湖州
 

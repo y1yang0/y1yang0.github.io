@@ -10,10 +10,9 @@
                 <div class="travel-search-results" id="travelSearchResults" hidden><div id="travelCityList" role="listbox" aria-label="城市搜索结果"></div><p id="travelSearchEmpty" class="travel-search-empty" role="status" hidden>未找到城市</p></div>
             </div>
             <div class="travel-map-stage">
-                <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">中国城市旅行地图</title><g id="travelMapCanvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
+                <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">中国城市旅行地图</title><g id="travelMapCanvas" class="travel-map-canvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
                 <div id="travelMapStatus" class="travel-map-status" role="status" hidden><button type="button" id="travelRetry" hidden>重新初始化</button></div>
                 <div id="travelMapTooltip" class="travel-map-tooltip" hidden></div>
-                <div class="travel-map-lens-layer" aria-hidden="true"><div id="travelMapLens" class="travel-map-lens" hidden><svg id="travelMagnifiedMap" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg><span class="travel-map-lens-crosshair"></span><span id="travelMapLensLabel" class="travel-map-lens-label"></span></div></div>
                 <div class="travel-map-tools" role="group" aria-label="地图缩放"><button type="button" data-travel-zoom="in" aria-label="放大地图" title="放大" disabled>＋</button><button type="button" data-travel-zoom="out" aria-label="缩小地图" title="缩小" disabled>−</button><button type="button" data-travel-zoom="reset" aria-label="恢复全国视图" title="全国视图" disabled>⌖</button></div>
             </div>
             <p id="travelKeyboardHint" class="visually-hidden">地图获得焦点后，可用方向键切换附近城市，按加号或减号缩放，按零恢复全国视图；也可搜索城市。</p>

@@ -1,0 +1,73 @@
+{
+  "asset": "china-relief.png",
+  "size": [
+    1600,
+    1362
+  ],
+  "bytes": 203373,
+  "assetSha256": "192885b06798de000e69e061892c627d35b5bb55b9a33befcd6b6e570450943e",
+  "source": {
+    "name": "Natural Earth 1:50m Shaded Relief Basic (SR_50M)",
+    "description": "Land shaded relief derived from downsampled SRTM Plus elevation data, clipped to the 1:50m coastline.",
+    "pageUrl": "https://www.naturalearthdata.com/downloads/50m-raster-data/50m-shaded-relief/",
+    "downloadUrl": "https://naturalearth.s3.amazonaws.com/50m_raster/SR_50M.zip",
+    "siteAdvertisedVersion": "3.2.0",
+    "archiveVersionFile": "2.0.0",
+    "retrieved": "2026-10-02",
+    "sourceRasterSize": [
+      10800,
+      5400
+    ],
+    "sourceArchiveSha256": "ff810f5f2747463fd8ffa612b23e5f5e5d593a345218976872b6749610976ab7",
+    "sourceRasterSha256": "aff6ec6905554ed489087edf46e61cbf68c810fe99f2a1d2cddda7e986a540a2",
+    "sourceWorldFile": [
+      0.03333333333333,
+      0.0,
+      0.0,
+      -0.03333333333333,
+      -179.98333333333332,
+      89.98333333333333
+    ],
+    "license": "Public domain",
+    "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+    "licenseSummary": "Natural Earth permits use, modification, and electronic redistribution for personal, educational, and commercial purposes; no permission or attribution is required.",
+    "attribution": "Made with Natural Earth."
+  },
+  "projection": {
+    "name": "Spherical Albers equal-area, matching the existing D3 map",
+    "centralMeridianDegrees": 105.0,
+    "standardParallelsDegrees": [
+      25.0,
+      47.0
+    ],
+    "viewBox": [
+      0,
+      0,
+      1000,
+      851
+    ],
+    "coordinateFormula": "x=s*rho*sin(n*(lon-105deg))+tx; y=s*rho*cos(n*(lon-105deg))+ty; rho=sqrt(C-2*n*sin(lat))/n",
+    "scale": 1247.7355790195884,
+    "translateX": 540.9136483241202,
+    "translateY": -1283.1614558813471,
+    "cityCenterResidual": {
+      "referenceCount": 391,
+      "inlierCount": 391,
+      "rejectedIds": [],
+      "rmsSvgPixels": 0.040690110420153074,
+      "maxSvgPixels": 0.07105530833788351,
+      "p95SvgPixels": 0.06109072734969469
+    },
+    "mapInputSha256": "5984853419093ced78a52d4c6cf9b87c2ad44df916c69444a7fc489f1a33e09b"
+  },
+  "processing": {
+    "generator": "tools/build-china-relief.py",
+    "command": "python tools/build-china-relief.py --width 1600 --levels 16 --contrast 1.2",
+    "resampling": "Bilinear inverse projection, sampling each output pixel center",
+    "tone": "clamp(255 - 1.2 * max(206 - sourceGray, 0), 0, 255)",
+    "palette": "16 evenly spaced grayscale values",
+    "outsideOutline": "White outside the existing main outline, with one output pixel of padding; the SVG retains final clipping control.",
+    "display": "Place over city fills as multiply-blended SVG image at x=0 y=0 width=1000 height=851, clip to the main outline, and keep borders and labels above it.",
+    "limitations": "Static shaded-relief texture, not elevation geometry. The South China Sea inset has its own schematic coordinates and is not covered by this layer. Natural Earth's 1:50m coastline is generalized; the application's existing boundary clip controls the displayed outline."
+  }
+}

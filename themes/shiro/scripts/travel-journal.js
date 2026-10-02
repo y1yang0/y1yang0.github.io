@@ -105,15 +105,29 @@ hexo.extend.helper.register('travel_map_markup', function () {
     style: `--travel-photo-weight:${photoWeight(city.id)}`
   });
   const cityTitle = city => element('title', {}, escapeHTML(`${city.name}${journal.cities[city.id]?.entries?.length ? ` · ${photoCount(city.id)} 张照片` : ''}`));
-  const border = (d, className) => element('path', { d, class: className, 'pointer-events': 'none' });
+  const border = (d, className, attributes = {}) => element('path', { d, class: className, 'pointer-events': 'none', ...attributes });
   let markup = element('g', { class: 'travel-map-cities' }, data.cities.map(city =>
     element('path', { d: city.path, ...cityAttributes(city) }, cityTitle(city))
   ).join(''));
+  // Share the existing outline with the terrain clip instead of embedding
+  // the national geometry twice. The relief is a small same-origin asset.
+  const terrainDefs = data.outlinePath ? element('defs', { class: 'travel-map-terrain-defs' },
+    element('path', { id: 'travelTerrainOutline', d: data.outlinePath, 'vector-effect': 'non-scaling-stroke' })
+    + element('clipPath', { id: 'travelTerrainClip', clipPathUnits: 'userSpaceOnUse' },
+      element('use', { href: '#travelTerrainOutline' }))) : '';
+  if (terrainDefs) markup += element('image', {
+    href: this.url_for('/travel/china-relief.png'),
+    x: data.viewBox[0], y: data.viewBox[1], width: data.viewBox[2], height: data.viewBox[3],
+    preserveAspectRatio: 'none', class: 'travel-map-terrain',
+    'clip-path': 'url(#travelTerrainClip)', 'pointer-events': 'none'
+  });
   for (const province of data.provinces || []) {
-    if (province.path) markup += border(province.path, 'travel-map-province-border');
+    if (province.path) markup += border(province.path, 'travel-map-province-border', { 'data-province-name': province.name });
   }
   if (typeof data.provinceBorders === 'string') markup += border(data.provinceBorders, 'travel-map-province-border');
-  if (data.outlinePath) markup += border(data.outlinePath, 'travel-map-outline');
+  if (data.outlinePath) markup += element('use', {
+    href: '#travelTerrainOutline', class: 'travel-map-outline', 'pointer-events': 'none'
+  });
   if (data.inset?.path && Array.isArray(data.inset.placement)) {
     const inset = data.inset;
     const [x, y, width, height] = inset.placement;
@@ -144,7 +158,7 @@ hexo.extend.helper.register('travel_map_markup', function () {
       class: 'travel-map-heart'
     }));
   }).join('');
-  return heart + markup
+  return heart + terrainDefs + markup
     + element('g', { class: 'travel-map-province-labels', 'pointer-events': 'none' })
     + element('g', { class: 'travel-map-markers' }, pins);
 });

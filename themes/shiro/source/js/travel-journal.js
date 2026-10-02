@@ -7,9 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapStatus = document.getElementById('travelMapStatus');
     const retry = document.getElementById('travelRetry');
     const tooltip = document.getElementById('travelMapTooltip');
-    const mapLens = document.getElementById('travelMapLens');
-    const magnifiedMap = document.getElementById('travelMagnifiedMap');
-    const lensLabel = document.getElementById('travelMapLensLabel');
     const mouseMagnifier = window.matchMedia('(any-hover: hover) and (any-pointer: fine)');
     const search = document.getElementById('travelSearch');
     const cityList = document.getElementById('travelCityList');
@@ -91,8 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let provinceLabels;
     let provinces = [];
     let paths = new Map();
-    let lensPaths = new Map();
-    let lensCityId = '';
+    let provinceFocus = null;
+    let provinceFocusExtent = null;
+    let hoverProvinceName = '';
+    let provinceHideTimer = 0;
     let heartCityIds = new Set();
 
     const text = value => typeof value === 'string' ? value : '';
@@ -336,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         markers.replaceChildren();
         const selected = root.dataset.view === 'album' ? cityById.get(activeId) : null;
         const markerIds = new Set(heartCityIds);
-        if (!selected) cities.filter(city => hasRecord(city.id)).forEach(city => markerIds.add(city.id));
         const visible = [...markerIds].map(id => cityById.get(id)).filter(Boolean);
         if (selected && !heartCityIds.has(selected.id)) visible.push(selected);
         visible.forEach(city => {
@@ -516,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const city = cityById.get(String(id));
         if (!city) return false;
         if (hash) rememberNavigation();
-        hideMapLens();
+        hideProvinceFocus();
         if (viewer?.open) viewer.close();
         const enteringAlbum = root.dataset.view !== 'album';
         if (enteringAlbum && !restoringNavigation) atlasView = [...view];
@@ -546,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function showAtlas({hash = true, scroll = false, focus = false} = {}) {
         if (hash) rememberNavigation();
-        hideMapLens();
+        hideProvinceFocus();
         cancelViewAnimation();
         if (viewer?.open) viewer.close();
         activeId = '';
@@ -880,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewAnimation = requestAnimationFrame(step);
     }
     function applyView() {
-        hideMapLens();
+        hideProvinceFocus();
         const zoom = initialBox[2] / view[2];
         const marginX = initialBox[2] * .04;
         const marginY = initialBox[3] * .04;
@@ -916,65 +914,251 @@ document.addEventListener('DOMContentLoaded', () => {
         point.y = event.clientY;
         return point.matrixTransform(svg.getScreenCTM().inverse());
     }
-    function hideMapLens() {
-        if (mapLens) mapLens.hidden = true;
-        root.classList.remove('is-magnifying');
+    function hideProvinceFocus() {
+        clearTimeout(provinceHideTimer);
+        provinceHideTimer = 0;
+        provinceFocus?.remove();
+        provinceFocus = null;
+        provinceFocusExtent = null;
+        hoverProvinceName = '';
+        delete root.dataset.hoverProvince;
     }
-    function initializeMapLens() {
-        if (!magnifiedMap) return;
-        // Reuse the local vector geometry without downloading or rasterizing
-        // the map. The lens stays outside the interactive SVG hit targets.
-        const contents = canvas.cloneNode(true);
-        contents.removeAttribute('id');
-        contents.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
-        contents.querySelectorAll('text,defs,.travel-map-markers,.travel-map-province-labels').forEach(node => node.remove());
-        magnifiedMap.replaceChildren(contents);
-        lensPaths = new Map();
-        lensCityId = '';
-        contents.querySelectorAll('path[data-city-id]').forEach(path => {
-            path.classList.remove('is-selected');
-            const id = path.dataset.cityId;
-            if (!lensPaths.has(id)) lensPaths.set(id, []);
-            lensPaths.get(id).push(path);
+    function scheduleProvinceHide() {
+        if (provinceHideTimer || !provinceFocus) return;
+        // A small gap between the original boundary and its lifted edge should
+        // not collapse the province while the pointer crosses that gap.
+        provinceHideTimer = window.setTimeout(hideProvinceFocus, 120);
+    }
+    function provinceCityName(city) {
+        if (city.province === '台湾省') return city.name;
+        // Keep familiar place names readable without dropping a city from the
+        // map; each label's title still carries the full administrative name.
+        return shortName(city.name).replace(/自治县$/u, '')
+            .replace(/(?:蒙古族?|藏族|羌族|彝族|苗族|白族|傣族|哈尼族|壮族|黎族|回族|土家族|布依族|侗族|傈僳族|景颇族|朝鲜族|哈萨克|柯尔克孜)+$/u, '');
+    }
+    function renderProvinceCityLabels(group, provinceCities, bounds, pixelScale) {
+        const padding = 3 / pixelScale;
+        const occupied = [];
+        const frame = [bounds[0] - 44 / pixelScale, bounds[1] - 36 / pixelScale,
+            bounds[2] + 44 / pixelScale, bounds[3] + 36 / pixelScale];
+        const labels = provinceCities.map(city => {
+            const cityPaths = paths.get(city.id).filter(path => path.ownerSVGElement === svg);
+            let center = city.mainCenter || city.center;
+            if (city.insetCenter || !Array.isArray(center)) {
+                const box = cityPaths[0].getBBox();
+                center = [box.x + box.width / 2, box.y + box.height / 2];
+            }
+            const label = svgNode('text', {
+                class: `travel-province-city-label${hasRecord(city.id) ? ' is-recorded' : ''}`,
+                'data-city-id': city.id, 'text-anchor': 'middle', 'dominant-baseline': 'central'
+            });
+            label.textContent = provinceCityName(city);
+            label.style.fontSize = `${12 / pixelScale}px`;
+            label.style.strokeWidth = `${3 / pixelScale}px`;
+            const title = svgNode('title');
+            title.textContent = cityDescription(city);
+            label.append(title);
+            group.append(label);
+            return {city, center, label, box: label.getBBox()};
         });
+        // Reserve the most crowded anchors first, so dense coastal clusters
+        // can spread to nearby empty space without hiding any of their names.
+        const nearestDistance = item => Math.min(...labels.filter(other => other !== item)
+            .map(other => Math.hypot(item.center[0] - other.center[0], item.center[1] - other.center[1])));
+        labels.sort((a, b) => nearestDistance(a) - nearestDistance(b) || b.box.width - a.box.width);
+        const fits = box => box[0] >= frame[0] && box[1] >= frame[1] && box[2] <= frame[2] && box[3] <= frame[3];
+        const overlaps = box => occupied.some(other => box[0] < other[2] + padding && box[2] > other[0] - padding
+            && box[1] < other[3] + padding && box[3] > other[1] - padding);
+        const offsets = [[0, 0]];
+        [14, 28, 42, 56, 70].forEach(distance => {
+            [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]
+                .forEach(([dx, dy]) => offsets.push([dx * distance / pixelScale, dy * distance / pixelScale]));
+        });
+        labels.forEach(({center, label, box}) => {
+            const areaAt = (x, y) => [x + box.x, y + box.y, x + box.x + box.width, y + box.y + box.height];
+            const available = (x, y) => fits(areaAt(x, y)) && !overlaps(areaAt(x, y));
+            let position = offsets.map(([dx, dy]) => [center[0] + dx, center[1] + dy])
+                .find(([x, y]) => available(x, y));
+            if (!position) {
+                // Scan nearest free positions rather than moving unresolved
+                // cities into a separate list or drawing leader lines.
+                const candidates = [];
+                const step = 8 / pixelScale;
+                for (let y = frame[1] - box.y; y <= frame[3] - box.y - box.height; y += step) {
+                    for (let x = frame[0] - box.x; x <= frame[2] - box.x - box.width; x += step) {
+                        if (available(x, y)) candidates.push([x, y]);
+                    }
+                }
+                candidates.sort((a, b) => Math.hypot(a[0] - center[0], a[1] - center[1])
+                    - Math.hypot(b[0] - center[0], b[1] - center[1]));
+                position = candidates[0];
+            }
+            if (!position) {
+                // Very narrow provinces at unusual viewport sizes can exhaust
+                // the local frame. Extend a nearby row and still show every city.
+                const x = Math.max(frame[0] - box.x, Math.min(frame[2] - box.x - box.width, center[0]));
+                let y = frame[3] - box.y + padding;
+                while (overlaps(areaAt(x, y))) y += (box.height + padding);
+                position = [x, y];
+                frame[3] = y + box.y + box.height;
+            }
+            label.setAttribute('x', String(position[0]));
+            label.setAttribute('y', String(position[1]));
+            occupied.push(areaAt(...position));
+        });
+        return occupied;
     }
-    function showMapLens(event, city) {
-        if (!mapLens || !magnifiedMap || !mapReady || root.dataset.view !== 'atlas'
-            || event.pointerType !== 'mouse' || !mouseMagnifier.matches || event.buttons || drag) {
-            hideMapLens();
+    function showProvinceFocus(name) {
+        clearTimeout(provinceHideTimer);
+        provinceHideTimer = 0;
+        if (hoverProvinceName === name && provinceFocus) return;
+        const provinceCities = cities.filter(city => city.province === name
+            && paths.get(city.id)?.some(path => path.ownerSVGElement === svg));
+        if (!provinceCities.length) { hideProvinceFocus(); return; }
+        const matrix = svg.getScreenCTM();
+        const screenScale = matrix && Math.hypot(matrix.a, matrix.b);
+        if (!screenScale) return;
+        const geometry = provinceCities.flatMap(city => paths.get(city.id).filter(path => path.ownerSVGElement === svg));
+        const boxes = geometry.map(path => path.getBBox()).filter(box => box.width || box.height);
+        if (!boxes.length) return;
+        const bounds = [Math.min(...boxes.map(box => box.x)), Math.min(...boxes.map(box => box.y)),
+            Math.max(...boxes.map(box => box.x + box.width)), Math.max(...boxes.map(box => box.y + box.height))];
+        const width = bounds[2] - bounds[0];
+        const height = bounds[3] - bounds[1];
+        const cx = (bounds[0] + bounds[2]) / 2;
+        const cy = (bounds[1] + bounds[3]) / 2;
+        const targetSize = provinceCities.length === 1 ? 72 : Math.min(300, 210 + provinceCities.length * 4);
+        const maximumScale = provinceCities.length === 1 ? 24 : 3.2;
+        const viewportScale = Math.min((view[2] - 32 / screenScale) / width, (view[3] - 58 / screenScale) / height);
+        const minimumScale = initialBox[2] / view[2] > 1.01 ? .01 : 1.06;
+        const focusScale = Math.min(viewportScale, Math.max(minimumScale,
+            Math.min(maximumScale, targetSize / (Math.max(width, height) * screenScale))));
+        const pixelScale = screenScale * focusScale;
+        const focus = svgNode('g', {id: 'travelProvinceFocus', class: 'travel-province-focus', 'data-province': name});
+        const surface = svgNode('g', {class: 'travel-province-surface'});
+        const defs = svgNode('defs');
+        const clip = svgNode('clipPath', {id: 'travelProvinceClip', clipPathUnits: 'userSpaceOnUse'});
+        geometry.forEach(path => {
+            const shape = path.cloneNode(true);
+            shape.removeAttribute('id');
+            shape.classList.add('travel-province-city');
+            shape.classList.remove('is-selected');
+            shape.querySelector('title')?.remove();
+            surface.append(shape);
+            const outline = svgNode('path', {d: path.getAttribute('d')});
+            if (path.hasAttribute('transform')) outline.setAttribute('transform', path.getAttribute('transform'));
+            clip.append(outline);
+        });
+        defs.append(clip);
+        focus.append(defs, surface);
+        const terrain = canvas.querySelector('.travel-map-terrain');
+        if (terrain) {
+            const relief = terrain.cloneNode(false);
+            relief.removeAttribute('id');
+            relief.setAttribute('clip-path', 'url(#travelProvinceClip)');
+            surface.append(relief);
+        }
+        canvas.querySelectorAll('.travel-map-province-border[data-province-name]').forEach(path => {
+            if (path.dataset.provinceName !== name) return;
+            const outline = path.cloneNode(false);
+            outline.removeAttribute('id');
+            outline.setAttribute('class', 'travel-province-outline');
+            surface.append(outline);
+        });
+        hideProvinceFocus();
+        // This sibling remains fully opaque when the national canvas recedes.
+        svg.append(focus);
+        provinceFocus = focus;
+        hoverProvinceName = name;
+        root.dataset.hoverProvince = name;
+        // Clipping limits the pixels of the relief image, but SVG getBBox still
+        // reports its national dimensions. Measure only shapes and text.
+        const extent = [...bounds];
+        const include = box => {
+            extent[0] = Math.min(extent[0], box[0]);
+            extent[1] = Math.min(extent[1], box[1]);
+            extent[2] = Math.max(extent[2], box[2]);
+            extent[3] = Math.max(extent[3], box[3]);
+        };
+        renderProvinceCityLabels(focus, provinceCities, bounds, pixelScale).forEach(include);
+        if (provinceCities.length > 1) {
+            const title = svgNode('text', {class: 'travel-province-title', x: cx,
+                y: extent[1] - 18 / pixelScale, 'text-anchor': 'middle', 'pointer-events': 'none'});
+            title.textContent = name.replace(/(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
+            title.style.fontSize = `${18 / pixelScale}px`;
+            title.style.strokeWidth = `${4 / pixelScale}px`;
+            focus.append(title);
+            const titleBox = title.getBBox();
+            include([titleBox.x, titleBox.y, titleBox.x + titleBox.width, titleBox.y + titleBox.height]);
+        }
+        const left = cx + (extent[0] - cx) * focusScale;
+        const top = cy + (extent[1] - cy) * focusScale;
+        const right = cx + (extent[2] - cx) * focusScale;
+        const bottom = cy + (extent[3] - cy) * focusScale;
+        const margin = 10 / screenScale;
+        let dx = 0;
+        let dy = -10 / screenScale;
+        if (left < view[0] + margin) dx = view[0] + margin - left;
+        else if (right > view[0] + view[2] - margin) dx = view[0] + view[2] - margin - right;
+        if (top + dy < view[1] + margin) dy = view[1] + margin - top;
+        else if (bottom + dy > view[1] + view[3] - margin) dy = view[1] + view[3] - margin - bottom;
+        focus.setAttribute('transform', `translate(${dx} ${dy}) translate(${cx} ${cy}) scale(${focusScale}) translate(${-cx} ${-cy})`);
+        const focusMatrix = focus.getScreenCTM();
+        const screenCorners = [[extent[0], extent[1]], [extent[2], extent[1]],
+            [extent[0], extent[3]], [extent[2], extent[3]]].map(([x, y]) => {
+            const point = svg.createSVGPoint();
+            point.x = x;
+            point.y = y;
+            return point.matrixTransform(focusMatrix);
+        });
+        provinceFocusExtent = {
+            left: Math.min(...screenCorners.map(point => point.x)), right: Math.max(...screenCorners.map(point => point.x)),
+            top: Math.min(...screenCorners.map(point => point.y)), bottom: Math.max(...screenCorners.map(point => point.y))
+        };
+    }
+    function showProvinceHover(event, city) {
+        if (!mapReady || root.dataset.view !== 'atlas'
+            || event.pointerType !== 'mouse' || !mouseMagnifier.matches) {
+            hideProvinceFocus();
             return false;
         }
-        const matrix = svg.getScreenCTM();
-        if (!matrix) return false;
-        const scale = Math.hypot(matrix.a, matrix.b);
-        if (!scale) return false;
-        const point = pointInMap(event);
-        const bounds = mapLens.parentElement.getBoundingClientRect();
-        mapLens.hidden = false;
-        mapLens.style.left = `${event.clientX - bounds.left}px`;
-        mapLens.style.top = `${event.clientY - bounds.top}px`;
-        const size = mapLens.clientWidth / (scale * 3);
-        magnifiedMap.setAttribute('viewBox', `${point.x - size / 2} ${point.y - size / 2} ${size} ${size}`);
-        const id = city?.id || '';
-        if (lensCityId !== id) {
-            lensPaths.get(lensCityId)?.forEach(path => path.classList.remove('is-lens-target'));
-            lensPaths.get(id)?.forEach(path => path.classList.add('is-lens-target'));
-            lensCityId = id;
-        }
-        lensLabel.textContent = city ? cityDescription(city) : '移到城市上，点击查看';
-        root.classList.add('is-magnifying');
         tooltip.hidden = true;
+        if (event.buttons || drag) return true;
+        if (event.target.closest('#travelProvinceFocus')) {
+            clearTimeout(provinceHideTimer);
+            provinceHideTimer = 0;
+            return true;
+        }
+        const onMainMap = event.target.closest('path[data-city-id]')?.ownerSVGElement === svg
+            || event.target.closest('.travel-map-pin');
+        if (city?.province && onMainMap && city.province !== hoverProvinceName) {
+            showProvinceFocus(city.province);
+            return true;
+        }
+        if (provinceFocusExtent) {
+            const bounds = provinceFocusExtent;
+            if (event.clientX >= bounds.left - 5 && event.clientX <= bounds.right + 5
+                && event.clientY >= bounds.top - 5 && event.clientY <= bounds.bottom + 5) {
+                clearTimeout(provinceHideTimer);
+                provinceHideTimer = 0;
+                return true;
+            }
+        }
+        if (city?.province && onMainMap) showProvinceFocus(city.province);
+        else scheduleProvinceHide();
         return true;
     }
     svg.addEventListener('pointerdown', event => {
         if (!mapReady || event.button !== 0 || !event.isPrimary) return;
-        hideMapLens();
         suppressClick = false;
-        pendingMapCity = '';
+        // Preserve the pressed city's identity if its lifted path disappears
+        // during a later drag or a view change before the click is delivered.
+        pendingMapCity = event.target.closest('[data-city-id]')?.dataset.cityId || '';
+        if (event.pointerType !== 'mouse') hideProvinceFocus();
         cancelViewAnimation();
         if (root.dataset.zoomed !== 'true') return;
         const point = pointInMap(event);
-        drag = {pointerId: event.pointerId, x: point.x, y: point.y, startX: event.clientX, startY: event.clientY, view: [...view], moved: false, cityId: event.target.closest('[data-city-id]')?.dataset.cityId};
+        drag = {pointerId: event.pointerId, x: point.x, y: point.y, startX: event.clientX, startY: event.clientY, view: [...view], moved: false, cityId: pendingMapCity};
         svg.setPointerCapture(event.pointerId);
     });
     svg.addEventListener('pointermove', event => {
@@ -992,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const city = cityById.get(event.target.closest('[data-city-id]')?.dataset.cityId);
-        if (showMapLens(event, city)) return;
+        if (showProvinceHover(event, city)) return;
         if (!city) { tooltip.hidden = true; return; }
         tooltip.textContent = `${shortName(city.name)}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
         tooltip.hidden = false;
@@ -1014,13 +1198,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     svg.addEventListener('pointerup', endDrag);
     svg.addEventListener('pointercancel', endDrag);
-    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; hideMapLens(); });
-    svg.addEventListener('pointercancel', hideMapLens);
-    svg.addEventListener('keydown', hideMapLens);
-    window.addEventListener('scroll', hideMapLens, {passive: true});
-    window.addEventListener('resize', hideMapLens, {passive: true});
-    window.addEventListener('blur', hideMapLens);
-    mouseMagnifier.addEventListener('change', hideMapLens);
+    svg.addEventListener('pointerleave', () => { tooltip.hidden = true; hideProvinceFocus(); });
+    svg.addEventListener('pointercancel', hideProvinceFocus);
+    svg.addEventListener('keydown', hideProvinceFocus);
+    window.addEventListener('scroll', hideProvinceFocus, {passive: true});
+    window.addEventListener('resize', hideProvinceFocus, {passive: true});
+    window.addEventListener('blur', hideProvinceFocus);
+    mouseMagnifier.addEventListener('change', hideProvinceFocus);
+    window.addEventListener('keydown', event => { if (event.key === 'Escape') hideProvinceFocus(); });
     svg.addEventListener('click', event => {
         if (suppressClick) {
             suppressClick = false;
@@ -1062,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (retry) mapStatus.append(retry);
     }
     function initializeMap() {
-        hideMapLens();
+        hideProvinceFocus();
         mapReady = false;
         if (retry) retry.hidden = true;
         try {
@@ -1075,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paths.get(id).push(path);
             });
             cities = data.cities.filter(city => city && city.id && city.name && paths.has(String(city.id))).map(city => {
-                const mapped = {...city, id: String(city.id)};
+                const mapped = {...city, id: String(city.id), mainCenter: city.center};
                 if (city.insetCenter && data.inset?.placement && data.inset?.viewBox) {
                     const [x, y, width, height] = data.inset.placement;
                     const [originX, originY, insetWidth, insetHeight] = data.inset.viewBox;
@@ -1097,7 +1282,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const city = cityById.get(id);
                 if (title && city) title.textContent = cityDescription(city);
             }));
-            initializeMapLens();
             markers = canvas.querySelector('.travel-map-markers');
             if (!markers) throw new Error('Missing map markers');
             provinceLabels = canvas.querySelector('.travel-map-province-labels');
@@ -1147,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     citySearch.addEventListener('focusout', event => { if (!citySearch.contains(event.relatedTarget)) closeSearch(); });
     window.addEventListener('hashchange', () => restoreNavigation());
     window.addEventListener('popstate', () => restoreNavigation());
-    new ResizeObserver(() => { hideMapLens(); renderMarkers(); }).observe(svg);
+    new ResizeObserver(() => { hideProvinceFocus(); renderMarkers(); }).observe(svg);
     svg.tabIndex = 0;
     updateStats();
     restoreNavigation({force: true, preserveScroll: true});
