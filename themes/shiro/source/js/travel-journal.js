@@ -582,6 +582,12 @@ document.addEventListener('DOMContentLoaded', () => {
         else writeNavigation(activeId, '', {replace: true});
     });
     window.addEventListener('scroll', scheduleNavigationMemory, {passive: true});
+    function formatFileSize(bytes) {
+        if (!Number.isFinite(bytes) || bytes <= 0) return '';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const unit = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log2(bytes) / 10)));
+        return `${(bytes / 1024 ** unit).toLocaleString('en', {maximumFractionDigits: unit ? 1 : 0})}${units[unit]}`;
+    }
     function cancelViewerLoad() {
         viewerOriginalSrc = '';
         viewerLoadSrc = '';
@@ -619,7 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerImage.hidden = true;
         viewerStatus.textContent = '高清原图加载中…';
         viewerCaption.textContent = text(photo.caption) || photo.alt;
-        viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}`;
+        const fileSize = formatFileSize(photo.sizeBytes);
+        viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}${fileSize ? `  (${fileSize})` : ''}`;
         viewer.querySelectorAll('[data-prev-photo],[data-next-photo]').forEach(button => { button.disabled = gallery.length < 2; });
         viewerLoadSrc = photo.src;
         if (retry) {

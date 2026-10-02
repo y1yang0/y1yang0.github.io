@@ -8,6 +8,7 @@ travel_journal: true
 # 杭州
 
 ## 西湖
+
 ![自划船，本想挑战划到三潭印月，体力不够，只能退而求其次划到苏堤](../images/travel/hangzhou-xihu1.jpg)
 
 ![蛤蟆峰看苏堤，第一次约会的地方](../images/travel/hangzhou-xihu2.jpg)
@@ -52,12 +53,15 @@ travel_journal: true
 
 ## 神仙居
 
-![](../images/travel/taizhou-sxj1.jpg)
+![神仙居](../images/travel/taizhou-sxj1.jpg)
 
-![](../images/travel/taizhou-sxj2.jpg)
+![神仙居](../images/travel/taizhou-sxj2.jpg)
 
-![](../images/travel/taizhou-sxj3.jpg)
+![神仙居](../images/travel/taizhou-sxj3.jpg)
 
+## 高迁古村
+
+![高迁古村](../images/travel/taizhou-gaoqiangucun.jpg)
 
 # 上海
 
@@ -75,10 +79,13 @@ travel_journal: true
 
 ![黄貂鱼](../images/travel/shanghai-haicang.jpg)
 
-
 ## 浦东美术馆
 
 ![艺术是一种不需要理解的美学](../images/travel/shanghai-pdmsg.jpg)
+
+## 上海迪士尼乐园
+
+![迪士尼公主花木兰](../images/travel/shanghai-disney1.jpg)
 
 # 黄山
 
@@ -102,20 +109,33 @@ travel_journal: true
 
 ![纤道走起来还是很惊心动魄的](../images/travel/shaoxing-ash2.jpg)
 
+![听说绍兴人还有船上娶亲的习俗](../images/travel/shaoxing-ash3.jpg)
+
+## 鲁迅故里
+
+![鲁迅故居的夜](../images/travel/shaoxing-lx1.jpg)
+
+## 香炉峰
+
+![去之前以为是休闲寺庙闲逛路线，实则高强度极限徒步路线](../images/travel/shaoxing-xlf.jpg)
+
 # 北京
 
 ## 圆明园
 
 ![小学课本里圆明园遗址的大水法，没有中国人能绷得住](../images/travel/beijing-ymy1.jpg)
 
-
 ![大水法遗址与树](../images/travel/beijing-ymy2.jpg)
 
 # 丽江
 
+## 丽江随拍
+
 ![旅途随拍](../images/travel/lijiang-stop.jpg)
 
 # 大理白族
+
+## 洱海
 
 ![洱海小憩](../images/travel/dalibaizu-erhai1.jpg)
 
@@ -123,11 +143,15 @@ travel_journal: true
 
 # 普洱
 
+## 普洱随拍
+
 ![旅途随拍，服务区看到种甘蔗的农田](../images/travel/puer-fwq1.jpg)
 
 ![旅途随拍，服务区看到种甘蔗的农田](../images/travel/puer-fwq2.jpg)
 
 # 临沧
+
+## 临沧随拍
 
 ![云南的天离地很近](../images/travel/lincang-walk1.jpg)
 
@@ -148,6 +172,8 @@ travel_journal: true
 ![野牦牛](../images/travel/aba-sgns4.jpg)
 
 # 广州
+
+## 广州随拍
 
 ![珠江夜景](../images/travel/guangzhou-chuan.jpg)
 
@@ -193,22 +219,40 @@ travel_journal: true
 
 ## 红山森林动物园
 
-![](../images/travel/nanjing-hsdwy1.jpg)
+![红山森林动物园](../images/travel/nanjing-hsdwy1.jpg)
 
-![](../images/travel/nanjing-hsdwy2.jpg)
+![红山森林动物园](../images/travel/nanjing-hsdwy2.jpg)
 
-![](../images/travel/nanjing-hsdwy3.jpg)
+![红山森林动物园](../images/travel/nanjing-hsdwy3.jpg)
 
-![](../images/travel/nanjing-hsdwy4.jpg)
+![红山森林动物园](../images/travel/nanjing-hsdwy4.jpg)
 
-![](../images/travel/nanjing-hsdwy5.jpg)
+![红山森林动物园](../images/travel/nanjing-hsdwy5.jpg)
 
 # 镇江
 
+## 金山寺
+
 ![](../images/travel/zhenjiang-jss.jpg)
 
-# 渭南市
+# 渭南
+
+## 华山
 
 ![华山是我心目中的中国第一山，兼具奇险和壮丽](../images/travel/weinan-huashan1.jpg)
 
 ![水墨画一样的山脉](../images/travel/weinan-huashan2.jpg)
+
+# 西安
+
+## 秦始皇兵马俑
+
+![秦始皇兵马俑，平平无奇吧](../images/travel/xian-bmy.jpg)
+
+## 高家大院
+
+![高家大院](../images/travel/xian-gaojiadayuan.jpg)
+
+## 钟楼鼓楼
+
+![地标建筑，钟楼鼓楼](../images/travel/xian-gulou.jpg)

@@ -22,7 +22,7 @@ async function readImageDimensions(filename) {
         offset += bytesRead;
       }
       input = next;
-      try { return imageSize(input); } catch (error) {
+      try { return { ...imageSize(input), sizeBytes: size }; } catch (error) {
         if (input.length === size) throw error;
       }
     }
@@ -127,7 +127,7 @@ async function addTravelImageMetadata(journal, { sourceDir, pageSource = 'journa
       if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
         throw new Error('未能读取有效图片尺寸');
       }
-      metadata.set(pathname, { width, height });
+      metadata.set(pathname, { width, height, sizeBytes: dimensions.sizeBytes });
     } catch (error) {
       errors.add(`链接 ${photo.src}：${error.message}`);
     }
