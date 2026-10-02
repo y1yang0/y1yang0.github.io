@@ -272,3 +272,15 @@ travel_journal: true
 ## 钟楼鼓楼
 
 ![地标建筑，钟楼鼓楼](../images/travel/xian-gulou.jpg)
+
+# 苏州
+
+## 拙政园
+
+![拙政园](../images/travel/suzhou-zzy1.jpg)
+
+![拙政园](../images/travel/suzhou-zzy2.jpg)
+
+## 天平山
+
+![天平山](../images/travel/suzhou-tps.jpg)
