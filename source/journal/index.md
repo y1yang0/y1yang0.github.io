@@ -32,8 +32,6 @@ travel_journal: true
 
 ![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy4.jpg)
 
-![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy5.jpg)
-
 ![最被低估的湿地公园（动物园）](../images/travel/ningbo-sdgy6.jpg)
 
 # 金华
@@ -50,8 +48,15 @@ travel_journal: true
 
 ![云雾缭绕见仙山](../images/travel/taizhou-shuitongao2.jpg)
 
-
 ![远处小岛](../images/travel/taizhou-shuitongao3.jpg)
+
+## 神仙居
+
+![](../images/travel/taizhou-sxj1.jpg)
+
+![](../images/travel/taizhou-sxj2.jpg)
+
+![](../images/travel/taizhou-sxj3.jpg)
 
 
 # 上海
@@ -166,8 +171,6 @@ travel_journal: true
 
 ![晋祠圣母殿](../images/travel/taiyuan-jc3.jpg)
 
-![晋祠圣母殿](../images/travel/taiyuan-jc4.jpg)
-
 # 南京
 
 ## 牛首山
@@ -203,3 +206,9 @@ travel_journal: true
 # 镇江
 
 ![](../images/travel/zhenjiang-jss.jpg)
+
+# 渭南市
+
+![华山是我心目中的中国第一山，兼具奇险和壮丽](../images/travel/weinan-huashan1.jpg)
+
+![水墨画一样的山脉](../images/travel/weinan-huashan2.jpg)

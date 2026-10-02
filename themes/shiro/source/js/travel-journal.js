@@ -142,14 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
         coverage.parentElement.setAttribute('aria-label', total ? `城市点亮率 ${coverage.textContent}，${visited.length} / ${total} 座城市` : '城市点亮率');
     }
     function renderCityControls() {
-        const recordedCities = cities.filter(city => hasRecord(city.id));
+        const recordedCities = cities.filter(city => hasRecord(city.id)).sort((a, b) => photoCount(b.id) - photoCount(a.id));
         albumCities.hidden = !recordedCities.length;
         albumCities.replaceChildren();
         recordedCities.forEach(city => {
-            const button = make('button', '', shortName(city.name));
+            const count = photoCount(city.id);
+            const button = make('button', '', `${shortName(city.name)}(${count})`);
             button.type = 'button';
             button.dataset.cityId = city.id;
-            button.setAttribute('aria-label', `${shortName(city.name)}，${photoCount(city.id)} 张照片`);
+            button.setAttribute('aria-label', `${shortName(city.name)}，${count} 张照片`);
             button.title = cityDescription(city);
             button.setAttribute('aria-pressed', String(city.id === activeId));
             button.addEventListener('click', () => selectCity(city.id, {scroll: true, focus: true}));
@@ -338,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selected) cities.filter(city => hasRecord(city.id)).forEach(city => markerIds.add(city.id));
         const visible = [...markerIds].map(id => cityById.get(id)).filter(Boolean);
         if (selected && !heartCityIds.has(selected.id)) visible.push(selected);
-        const pins = [];
         visible.forEach(city => {
             if (!Array.isArray(city.center)) return;
             const [cx, cy] = city.center;
@@ -357,9 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.append(label);
             }
             markers.append(group);
-            pins.push({city, group});
         });
-        if (!selected) renderRecordedCityLabels(pins, scale);
         renderProvinceLabels(scale);
         const insetLabel = canvas.querySelector('.travel-map-inset-label');
         if (insetLabel) {
@@ -370,56 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
             insetLabel.setAttribute('x', String(insetWidth / 2));
             insetLabel.setAttribute('text-anchor', 'middle');
         }
-    }
-    function renderRecordedCityLabels(pins, scale) {
-        const margin = 4 / scale;
-        const frame = [view[0] + margin, view[1] + margin, view[0] + view[2] - margin, view[1] + view[3] - margin];
-        const recorded = pins.filter(({city}) => hasRecord(city.id) && city.center[0] >= frame[0] && city.center[0] <= frame[2]
-            && city.center[1] >= frame[1] && city.center[1] <= frame[3]);
-        const radius = 5 / scale;
-        const occupied = pins.map(({city: {center: [x, y]}}) => [x - radius, y - radius, x + radius, y + radius]);
-        const padding = 3 / scale;
-        const overlap = box => occupied.reduce((sum, other) => sum
-            + Math.max(0, Math.min(box[2] + padding, other[2]) - Math.max(box[0] - padding, other[0]))
-            * Math.max(0, Math.min(box[3] + padding, other[3]) - Math.max(box[1] - padding, other[1])), 0);
-        const offsets = [[8, 0], [-8, 0], [0, -12], [0, 12]];
-        [18, 30, 42, 54, 66, 78, 90, 108, 126, 144].forEach(distance => {
-            [[1, 0], [-1, 0], [0, -1], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1]]
-                .forEach(([dx, dy]) => offsets.push([dx * distance, dy * distance]));
-        });
-        // Give tightly clustered cities first choice; displaced names retain
-        // a thin guide line to their actual locations.
-        const density = city => recorded.reduce((count, other) => count
-            + Number(other.city.id !== city.id && Math.hypot(other.city.center[0] - city.center[0], other.city.center[1] - city.center[1]) * scale < 60), 0);
-        recorded.sort((a, b) => density(b.city) - density(a.city) || a.city.center[1] - b.city.center[1]);
-        recorded.forEach(({city, group}) => {
-            const [cx, cy] = city.center;
-            const label = svgNode('text', {'class': 'travel-map-label', 'dominant-baseline': 'central'});
-            label.textContent = shortName(city.name);
-            label.style.fontSize = `${(scale < .45 ? 10 : 12) / scale}px`;
-            label.style.strokeWidth = `${3 / scale}px`;
-            group.append(label);
-            const box = label.getBBox();
-            const candidates = offsets.map(([dx, dy]) => {
-                let x = cx + dx / scale - (dx < 0 ? box.width : dx === 0 ? box.width / 2 : 0);
-                let y = cy + dy / scale;
-                x = Math.max(frame[0] - box.x, Math.min(frame[2] - box.x - box.width, x));
-                y = Math.max(frame[1] - box.y, Math.min(frame[3] - box.y - box.height, y));
-                const bounds = [x + box.x, y + box.y, x + box.x + box.width, y + box.y + box.height];
-                return {x, y, bounds, overlap: overlap(bounds)};
-            });
-            const placement = candidates.find(candidate => candidate.overlap === 0)
-                || candidates.reduce((best, candidate) => candidate.overlap < best.overlap ? candidate : best);
-            label.setAttribute('x', String(placement.x));
-            label.setAttribute('y', String(placement.y));
-            occupied.push(placement.bounds);
-            const [left, top, right, bottom] = placement.bounds;
-            const edgeX = Math.max(left, Math.min(right, cx));
-            const edgeY = Math.max(top, Math.min(bottom, cy));
-            if (Math.hypot(edgeX - cx, edgeY - cy) * scale > 12) {
-                group.insertBefore(svgNode('path', {d: `M${cx} ${cy}L${edgeX} ${edgeY}`, 'class': 'travel-map-city-leader'}), label);
-            }
-        });
     }
     function renderProvinceLabels(scale) {
         if (!provinceLabels) return;
