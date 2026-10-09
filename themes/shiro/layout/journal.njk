@@ -1,7 +1,13 @@
 {% extends "_layout.njk" %}
+{% from "_partial/components/travel-art.njk" import country_mark %}
 {% block content %}
+{% set country = travel_country(page) %}
 <article class="content-article standalone-page travel-article">
-    <header class="article-header"><h1>{{ page.title }}</h1></header>
+    <header class="article-header">
+        <nav class="travel-country-tabs" aria-label="旅行国家"><h1>
+            <a href="{{ url_for('/journal/') }}"{% if country.code == 'china' %} aria-current="page"{% endif %}>{{ country_mark('china') }}<span>China</span></a><span aria-hidden="true"> / </span><a href="{{ url_for('/journal/japan/') }}"{% if country.code == 'japan' %} aria-current="page"{% endif %}>{{ country_mark('japan') }}<span>Japan</span></a>
+        </h1></nav>
+    </header>
     {% include "_partial/components/travel-journal.njk" %}
 </article>
 {% endblock %}

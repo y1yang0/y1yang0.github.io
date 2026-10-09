@@ -1,0 +1,26 @@
+{
+  "source": "https://www.naturalearthdata.com/downloads/50m-raster-data/50m-shaded-relief/",
+  "download": "https://naturalearth.s3.amazonaws.com/50m_raster/SR_50M.zip",
+  "license": "Public domain",
+  "sourceSha256": "ff810f5f2747463fd8ffa612b23e5f5e5d593a345218976872b6749610976ab7",
+  "assetSha256": "9dc0b6127433e5361b4a64ca588eab7d9df2ac06200698de50b1155b0545e999",
+  "projection": {
+    "name": "Spherical Mercator",
+    "scale": 1850.5755504109384,
+    "offset": [
+      -3889.8816990663413,
+      1678.505810394157
+    ]
+  },
+  "viewBox": [
+    0,
+    0,
+    1000,
+    900
+  ],
+  "size": [
+    1600,
+    1440
+  ],
+  "generator": "tools/build-japan-map.py"
+}

@@ -29,7 +29,7 @@
 
     <!-- SEO: canonical -->
     {% set canonical_path = path %}
-    {% if page.travel_journal %}{% set canonical_path = 'journal/' %}{% endif %}
+    {% if page.travel_journal %}{% set canonical_path = travel_country(page).route %}{% endif %}
     <link rel="canonical" href="{{ full_url_for(canonical_path) }}" />
 
     <!-- Open Graph -->

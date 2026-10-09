@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.getElementById('travelJournal');
     if (!root) return;
+    const country = root.dataset.country || 'china';
+    const countryName = root.dataset.countryName || '中国';
+    const provinceLevel = root.dataset.mapLevel === 'province';
+    const placeUnit = root.dataset.unit || '座城市';
+    const coverageLabel = root.dataset.coverageLabel || '城市点亮率';
 
     const svg = document.getElementById('travelMap');
     const canvas = document.getElementById('travelMapCanvas');
@@ -35,14 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const allCitiesButton = document.getElementById('travelAllCities');
     const svgNS = 'http://www.w3.org/2000/svg';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fallbackCities = [
+    const fallbackCities = (country === 'japan' ? [
+        ['JP-26100', '京都市', '京都府'], ['JP-27100', '大阪市', '大阪府'],
+        ['JP-13100', '东京', '东京都'], ['JP-29201', '奈良市', '奈良县']
+    ] : [
         ['330100', '杭州市', '浙江省'], ['110000', '北京市', '北京市'],
         ['310000', '上海市', '上海市'], ['510100', '成都市', '四川省'],
         ['320100', '南京市', '江苏省'], ['440100', '广州市', '广东省'],
         ['610100', '西安市', '陕西省'], ['320500', '苏州市', '江苏省'],
         ['500000', '重庆市', '重庆市'], ['350200', '厦门市', '福建省']
-    ].map(([id, name, province]) => ({id, name, province}));
-    let journal = {cities: {}, defaultCity: '330100'};
+    ]).map(([id, name, province]) => ({id, name, province}));
+    let journal = {cities: {}, defaultCity: country === 'japan' ? 'JP-26100' : '330100'};
     try {
         const parsed = JSON.parse(document.getElementById('travelJournalData')?.textContent || '{}');
         if (parsed && typeof parsed === 'object') journal = {...journal, ...parsed};
@@ -106,14 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const photos = entry => Array.isArray(entry.photos) ? entry.photos.filter(photo => photo && typeof photo.src === 'string') : [];
     const hasRecord = id => entries(id).length > 0;
     const photoCount = id => entries(id).reduce((sum, entry) => sum + photos(entry).length, 0);
-    const maxPhotoCount = Math.max(1, ...Object.keys(journal.cities).map(photoCount));
+    const regionByName = new Map((journal.regions || []).map(region => [region.name, region]));
+    const mapPhotoCount = id => provinceLevel ? regionByName.get(cityById.get(id)?.province)?.photos || 0 : photoCount(id);
+    const mapRecorded = id => provinceLevel ? !!regionByName.get(cityById.get(id)?.province)?.recorded : hasRecord(id);
+    const maxPhotoCount = Math.max(1, ...(provinceLevel ? [...regionByName.values()].map(region => region.photos) : Object.keys(journal.cities).map(photoCount)));
     // Match the server-rendered map so enabling interactions does not change its colors.
     const photoWeight = id => {
-        const count = photoCount(id);
+        const count = mapPhotoCount(id);
         const weight = count ? 22 + (maxPhotoCount > 1 ? 58 * Math.log(count) / Math.log(maxPhotoCount) : 0) : 0;
         return `${weight.toFixed(2)}%`;
     };
     const cityDescription = city => `${city.name}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
+    const mapDescription = city => provinceLevel ? `${city.province}${mapRecorded(city.id) ? ` · ${mapPhotoCount(city.id)} 张照片` : ''}` : cityDescription(city);
     const shortName = name => text(name).replace(/(?:特别行政区|自治州|地区|市)$/u, '');
     const make = (tag, className, content) => {
         const node = document.createElement(tag);
@@ -134,13 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (_) { return ''; }
     };
     function updateStats() {
-        const visited = Object.keys(journal.cities).filter(hasRecord);
-        document.getElementById('travelPlaceCount').textContent = String(visited.length);
-        const total = Number(journal.totalCities) || (mapReady ? cities.length : 0);
+        const visited = provinceLevel ? Number(journal.coverage?.visited) || 0 : Object.keys(journal.cities).filter(hasRecord).length;
+        document.getElementById('travelPlaceCount').textContent = String(visited);
+        const total = provinceLevel ? Number(journal.coverage?.total) || provinces.length : Number(journal.totalCities) || (mapReady ? cities.length : 0);
         const coverage = document.getElementById('travelCoverage');
-        coverage.textContent = total ? `${(visited.length / total * 100).toLocaleString('en', {maximumFractionDigits: 1})}%` : '—';
-        coverage.parentElement.title = `${visited.length} / ${total} 座城市`;
-        coverage.parentElement.setAttribute('aria-label', total ? `城市点亮率 ${coverage.textContent}，${visited.length} / ${total} 座城市` : '城市点亮率');
+        coverage.textContent = total ? `${(visited / total * 100).toLocaleString('en', {maximumFractionDigits: 1})}%` : '—';
+        coverage.parentElement.title = `${visited} / ${total} ${placeUnit}`;
+        coverage.parentElement.setAttribute('aria-label', total ? `${coverageLabel} ${coverage.textContent}，${visited} / ${total} ${placeUnit}` : coverageLabel);
     }
     function renderCityControls() {
         const recordedCities = cities.filter(city => hasRecord(city.id)).sort((a, b) => photoCount(b.id) - photoCount(a.id));
@@ -268,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesNode.replaceChildren();
         entriesNode.hidden = !notes.length;
         empty.hidden = !!notes.length;
-        document.getElementById('travelActiveProvince').textContent = city.province || '中国';
+        document.getElementById('travelActiveProvince').textContent = city.province || countryName;
         heading.textContent = shortName(city.name);
         const count = photoCount(city.id);
         document.getElementById('travelCityMeta').textContent = notes.length
@@ -387,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selected = root.dataset.view === 'album' ? cityById.get(activeId) : null;
         const national = initialBox[2] / view[2] < 2.5;
         const fontSize = national && scale < .45 ? 9 : 11;
-        const provinceName = name => text(name).replace(/(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
+        const provinceName = name => text(name).replace(country === 'japan' ? /(?:都|府|县)$/u : /(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
         const margin = (national ? 4 : 12) / scale;
         const frame = [view[0] + margin, view[1] + margin, view[0] + view[2] - margin, view[1] + view[3] - margin];
         const occupied = [...markers.querySelectorAll('.travel-map-label')].map(label => {
@@ -412,7 +424,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // space before labeling the wider provinces in the national view.
         const ordered = [...provinces].sort((a, b) => Number(b.name === selected?.province) - Number(a.name === selected?.province)
             || (national ? area(a) - area(b) : 0));
+        const compactJapan = country === 'japan' && national && scale < .45;
+        const overviewNames = compactJapan ? new Set(['北海道', '东京都', '京都府', '大阪府', '福冈县', '冲绳县',
+            ...cities.filter(city => hasRecord(city.id)).map(city => city.province)]) : null;
         ordered.forEach(province => {
+            if (overviewNames && !overviewNames.has(province.name)) return;
             const name = provinceName(province.name);
             if (cityNames.has(name)) return;
             const bounds = province.bounds;
@@ -500,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeId !== city.id || root.dataset.view !== 'album') selectCity(city.id, {hash: false});
             else if (refreshMap) {
                 heading.textContent = shortName(city.name);
-                document.getElementById('travelActiveProvince').textContent = city.province || '中国';
+                document.getElementById('travelActiveProvince').textContent = city.province || countryName;
                 paths.forEach((cityPaths, id) => cityPaths.forEach(path => path.classList.toggle('is-selected', id === city.id)));
                 focusCityMap(city);
                 renderCityControls();
@@ -979,7 +995,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // can spread to nearby empty space without hiding any of their names.
         const nearestDistance = item => Math.min(...labels.filter(other => other !== item)
             .map(other => Math.hypot(item.center[0] - other.center[0], item.center[1] - other.center[1])));
-        labels.sort((a, b) => nearestDistance(a) - nearestDistance(b) || b.box.width - a.box.width);
+        labels.sort((a, b) => (country === 'japan' ? Number(hasRecord(b.city.id)) - Number(hasRecord(a.city.id)) : 0)
+            || nearestDistance(a) - nearestDistance(b) || b.box.width - a.box.width);
         const fits = box => box[0] >= frame[0] && box[1] >= frame[1] && box[2] <= frame[2] && box[3] <= frame[3];
         const overlaps = box => occupied.some(other => box[0] < other[2] + padding && box[2] > other[0] - padding
             && box[1] < other[3] + padding && box[3] > other[1] - padding);
@@ -1042,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cx = (bounds[0] + bounds[2]) / 2;
         const cy = (bounds[1] + bounds[3]) / 2;
         const targetSize = provinceCities.length === 1 ? 72 : Math.min(300, 210 + provinceCities.length * 4);
-        const maximumScale = provinceCities.length === 1 ? 24 : 3.2;
+        const maximumScale = provinceCities.length === 1 ? 24 : country === 'japan' ? 16 : 3.2;
         const viewportScale = Math.min((view[2] - 32 / screenScale) / width, (view[3] - 58 / screenScale) / height);
         const minimumScale = initialBox[2] / view[2] > 1.01 ? .01 : 1.06;
         const focusScale = Math.min(viewportScale, Math.max(minimumScale,
@@ -1094,11 +1111,15 @@ document.addEventListener('DOMContentLoaded', () => {
             extent[2] = Math.max(extent[2], box[2]);
             extent[3] = Math.max(extent[3], box[3]);
         };
-        renderProvinceCityLabels(focus, provinceCities, bounds, pixelScale).forEach(include);
+        // Japan has many small towns and villages. Keep cities and every
+        // recorded destination legible; every municipal shape stays selectable.
+        const labelCities = country === 'japan' && provinceCities.length > 40
+            ? provinceCities.filter(city => city.kind === 'city' || hasRecord(city.id)) : provinceCities;
+        renderProvinceCityLabels(focus, labelCities, bounds, pixelScale).forEach(include);
         if (provinceCities.length > 1) {
             const title = svgNode('text', {class: 'travel-province-title', x: cx,
                 y: extent[1] - 18 / pixelScale, 'text-anchor': 'middle', 'pointer-events': 'none'});
-            title.textContent = name.replace(/(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
+            title.textContent = name.replace(country === 'japan' ? /(?:都|府|县)$/u : /(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
             title.style.fontSize = `${18 / pixelScale}px`;
             title.style.strokeWidth = `${4 / pixelScale}px`;
             focus.append(title);
@@ -1289,12 +1310,12 @@ document.addEventListener('DOMContentLoaded', () => {
             initialBox = [...data.viewBox];
             view = [...initialBox];
             paths.forEach((cityPaths, id) => cityPaths.forEach(path => {
-                path.classList.toggle('is-recorded', hasRecord(id));
-                path.dataset.photoCount = String(photoCount(id));
+                path.classList.toggle('is-recorded', mapRecorded(id));
+                path.dataset.photoCount = String(mapPhotoCount(id));
                 path.style.setProperty('--travel-photo-weight', photoWeight(id));
                 const title = path.querySelector('title');
                 const city = cityById.get(id);
-                if (title && city) title.textContent = cityDescription(city);
+                if (title && city) title.textContent = mapDescription(city);
             }));
             markers = canvas.querySelector('.travel-map-markers');
             if (!markers) throw new Error('Missing map markers');

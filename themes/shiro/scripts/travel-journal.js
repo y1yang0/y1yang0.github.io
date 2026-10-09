@@ -6,12 +6,19 @@ const { escapeHTML } = require('hexo-util');
 const { parseTravelMarkdown, serializeJournal } = require(path.join(hexo.base_dir, 'tools/travel-markdown'));
 const { addTravelImageMetadata, applyTravelImageMetadata } = require(path.join(hexo.base_dir, 'tools/travel-image-metadata'));
 
-let mapData;
+let mapData = new Map();
 let journals = new WeakMap();
 let imageMetadata = new Map();
-const heartCityIds = ['330100', '510600'];
+const countries = {
+  china: { code: 'china', name: '中国', route: '/journal/', defaultCity: '330100', heartCities: ['330100', '510600'], mapLevel: 'city', coverageLabel: '城市点亮率', countLabel: '城市', unit: '座城市' },
+  japan: { code: 'japan', name: '日本', route: '/journal/japan/', defaultCity: 'JP-26100', heartCities: [], mapLevel: 'province', coverageLabel: '都道府县点亮率', countLabel: '都道府县', unit: '个都道府县' }
+};
+function countryFor(page) {
+  return countries[page?.travel_country] || countries.china;
+}
+hexo.extend.helper.register('travel_country', function (page = this.page) { return countryFor(page); });
 hexo.extend.filter.register('before_generate', async () => {
-  mapData = undefined;
+  mapData = new Map();
   journals = new WeakMap();
   imageMetadata = new Map();
   const pages = [...hexo.locals.get('pages').toArray(), ...hexo.locals.get('posts').toArray()];
@@ -22,9 +29,10 @@ hexo.extend.filter.register('before_generate', async () => {
   }
 });
 
-function readMap() {
-  if (!mapData) mapData = JSON.parse(fs.readFileSync(path.join(hexo.source_dir, 'travel/china-cities.json'), 'utf8'));
-  return mapData;
+function readMap(page) {
+  const { code } = countryFor(page);
+  if (!mapData.has(code)) mapData.set(code, JSON.parse(fs.readFileSync(path.join(hexo.source_dir, `travel/${code}-cities.json`), 'utf8')));
+  return mapData.get(code);
 }
 
 function readJournal(page) {
@@ -37,7 +45,8 @@ function readJournal(page) {
     if (source.startsWith(`${path.resolve(hexo.source_dir)}${path.sep}`)) markdown = fs.readFileSync(source, 'utf8');
   }
   const journal = parseTravelMarkdown(markdown, {
-    cities: readMap().cities,
+    cities: readMap(page).cities,
+    defaultCity: countryFor(page).defaultCity,
     onWarning: message => hexo.log.warn(`[旅行相册] ${page?.source || 'travel-journal'}：${message}`)
   });
   applyTravelImageMetadata(journal, imageMetadata);
@@ -51,25 +60,43 @@ function element(tag, attributes, content = '') {
   return `<${tag}${attrs}>${content}</${tag}>`;
 }
 
+function journalSummary(page) {
+  const data = readMap(page);
+  const journal = readJournal(page);
+  if (countryFor(page).mapLevel !== 'province') {
+    return { coverage: { visited: Object.values(journal.cities).filter(city => city.entries.length).length, total: data.cities.length } };
+  }
+  const regions = new Map(data.provinces.map(province => [province.name, { name: province.name, photos: 0, recorded: false }]));
+  for (const city of data.cities) {
+    const entries = journal.cities[city.id]?.entries || [];
+    const region = regions.get(city.province);
+    if (!region || !entries.length) continue;
+    region.recorded = true;
+    region.photos += entries.reduce((sum, entry) => sum + (entry.photos || []).filter(photo => photo && typeof photo.src === 'string').length, 0);
+  }
+  const values = [...regions.values()];
+  return { coverage: { visited: values.filter(region => region.recorded).length, total: values.length }, regions: values };
+}
+
 hexo.extend.helper.register('travel_journal_payload', function (page = this.page) {
-  return serializeJournal({ ...readJournal(page), totalCities: readMap().cities.length });
+  return serializeJournal({ ...readJournal(page), totalCities: readMap(page).cities.length, ...journalSummary(page) });
 });
 
 hexo.extend.helper.register('travel_journal_stats', function (page = this.page) {
-  const visited = Object.values(readJournal(page).cities).filter(city => city.entries.length).length;
-  const total = readMap().cities.length;
+  const { visited, total } = journalSummary(page).coverage;
   const coverage = total ? `${(visited / total * 100).toLocaleString('en', { maximumFractionDigits: 1 })}%` : '—';
   return { visited, total, coverage };
 });
 
-hexo.extend.helper.register('travel_map_viewbox', () => readMap().viewBox.join(' '));
+hexo.extend.helper.register('travel_map_viewbox', function () { return readMap(this.page).viewBox.join(' '); });
 
-hexo.extend.helper.register('travel_map_payload', () => {
-  const data = readMap();
+hexo.extend.helper.register('travel_map_payload', function () {
+  const data = readMap(this.page);
   const cities = data.cities.map(city => ({
     id: String(city.id),
     name: city.name,
     province: city.province,
+    ...(city.kind ? { kind: city.kind } : {}),
     ...(city.pinyin ? { pinyin: city.pinyin } : {}),
     ...(city.aliases ? { aliases: city.aliases } : {}),
     center: city.center,
@@ -79,32 +106,36 @@ hexo.extend.helper.register('travel_map_payload', () => {
     viewBox: data.viewBox,
     cities,
     provinces: data.provinces.map(({ id, name, center, bounds }) => ({ id: String(id), name, center, bounds })),
-    heartCities: heartCityIds,
+    heartCities: countryFor(this.page).heartCities,
     ...(data.inset ? { inset: { viewBox: data.inset.viewBox, placement: data.inset.placement } } : {}),
     metadata: data.metadata
   });
 });
 
 hexo.extend.helper.register('travel_map_markup', function () {
-  const data = readMap();
+  const data = readMap(this.page);
+  const country = countryFor(this.page);
   const journal = readJournal(this.page);
-  const photoCount = id => (journal.cities[id]?.entries || []).reduce((sum, entry) =>
+  const regions = new Map((journalSummary(this.page).regions || []).map(region => [region.name, region]));
+  const cityPhotoCount = id => (journal.cities[id]?.entries || []).reduce((sum, entry) =>
     sum + (entry.photos || []).filter(photo => photo && typeof photo.src === 'string').length, 0);
-  const maxPhotoCount = Math.max(1, ...Object.keys(journal.cities).map(photoCount));
+  const photoCount = city => country.mapLevel === 'province' ? regions.get(city.province)?.photos || 0 : cityPhotoCount(city.id);
+  const recorded = city => country.mapLevel === 'province' ? regions.get(city.province)?.recorded : journal.cities[city.id]?.entries?.length;
+  const maxPhotoCount = Math.max(1, ...data.cities.map(photoCount));
   // Match the client map's logarithmic scale; equal photo counts share a color.
-  const photoWeight = id => {
-    const count = photoCount(id);
+  const photoWeight = city => {
+    const count = photoCount(city);
     const weight = count ? 22 + (maxPhotoCount > 1 ? 58 * Math.log(count) / Math.log(maxPhotoCount) : 0) : 0;
     return `${weight.toFixed(2)}%`;
   };
-  const cityClass = city => `travel-map-city${journal.cities[city.id]?.entries?.length ? ' is-recorded' : ''}`;
+  const cityClass = city => `travel-map-city${recorded(city) ? ' is-recorded' : ''}`;
   const cityAttributes = city => ({
     'data-city-id': city.id,
-    'data-photo-count': photoCount(city.id),
+    'data-photo-count': photoCount(city),
     class: cityClass(city),
-    style: `--travel-photo-weight:${photoWeight(city.id)}`
+    style: `--travel-photo-weight:${photoWeight(city)}`
   });
-  const cityTitle = city => element('title', {}, escapeHTML(`${city.name}${journal.cities[city.id]?.entries?.length ? ` · ${photoCount(city.id)} 张照片` : ''}`));
+  const cityTitle = city => element('title', {}, escapeHTML(`${country.mapLevel === 'province' ? city.province : city.name}${recorded(city) ? ` · ${photoCount(city)} 张照片` : ''}`));
   const border = (d, className, attributes = {}) => element('path', { d, class: className, 'pointer-events': 'none', ...attributes });
   let markup = element('g', { class: 'travel-map-cities' }, data.cities.map(city =>
     element('path', { d: city.path, ...cityAttributes(city) }, cityTitle(city))
@@ -116,7 +147,7 @@ hexo.extend.helper.register('travel_map_markup', function () {
     + element('clipPath', { id: 'travelTerrainClip', clipPathUnits: 'userSpaceOnUse' },
       element('use', { href: '#travelTerrainOutline' }))) : '';
   if (terrainDefs) markup += element('image', {
-    href: this.url_for('/travel/china-relief.png'),
+    href: this.url_for(`/travel/${country.code}-relief.png`),
     x: data.viewBox[0], y: data.viewBox[1], width: data.viewBox[2], height: data.viewBox[3],
     preserveAspectRatio: 'none', class: 'travel-map-terrain',
     'clip-path': 'url(#travelTerrainClip)', 'pointer-events': 'none'
@@ -149,7 +180,7 @@ hexo.extend.helper.register('travel_map_markup', function () {
     id: 'travelMapHeart',
     d: 'M0 3.2C-1 2.3-3.6 .7-3.6-1.3C-3.6-3.5-1.3-4.1 0-2.5C1.3-4.1 3.6-3.5 3.6-1.3C3.6 .7 1 2.3 0 3.2Z'
   }));
-  const pins = heartCityIds.map(id => {
+  const pins = country.heartCities.map(id => {
     const city = data.cities.find(city => String(city.id) === id);
     if (!city?.center) return '';
     return element('g', { 'data-city-id': id, class: 'travel-map-pin' }, element('use', {
