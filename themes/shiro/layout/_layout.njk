@@ -15,6 +15,6 @@
     <script src="{{ url_for('js/lightgallery.js') }}" defer></script>
     {% endif %}
     <script src="{{ journal_asset('js/main.js') }}" defer></script>
-    {% if page.travel_journal %}<script src="{{ journal_asset('js/travel-journal.js') }}" defer></script>{% endif %}
+    {% if page.travel_journal %}<script type="module" src="{{ journal_asset('js/travel-journal.js') }}"></script>{% endif %}
 </body>
 </html>

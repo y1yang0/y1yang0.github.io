@@ -10,35 +10,12 @@ menu:
  - name: About
    url: /about
 
-site:
-  favicon: /favicon.svg
-  rss:
-    enabled: false
-    path: /atom.xml
-
-article:
-  show_toc: true
-
 # Analytics
 analytics:
-  # Only support Google Analytics 4
-  google:
-    enabled: false
-    id: ""
+  clarity:
+    enabled: true
+    id: "vzb6r72095"
 
 # Comment systems
 comments:
-  enabled: true
-  provider: disqus
-  disqus:
-    shortname: ""
-
-# Excerpt settings
-excerpt:
-  fallback:
-    enabled: true
-    length: 200
-
-# Homepage copy; the name comes from author in _config.yml.
-journal:
-  motto: '致广大，尽精微。'
+  enabled: false

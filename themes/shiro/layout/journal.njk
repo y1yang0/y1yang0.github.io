@@ -5,7 +5,9 @@
 <article class="content-article standalone-page travel-article">
     <header class="article-header">
         <nav class="travel-country-tabs" aria-label="旅行国家"><h1>
-            <a href="{{ url_for('/journal/') }}"{% if country.code == 'china' %} aria-current="page"{% endif %}>{{ country_mark('china') }}<span>China</span></a><span aria-hidden="true"> / </span><a href="{{ url_for('/journal/japan/') }}"{% if country.code == 'japan' %} aria-current="page"{% endif %}>{{ country_mark('japan') }}<span>Japan</span></a>
+            {% for destination in travel_countries() %}
+            {% if not loop.first %}<span aria-hidden="true"> / </span>{% endif %}<a href="{{ url_for(destination.route) }}"{% if country.code == destination.code %} aria-current="page"{% endif %}>{{ country_mark(destination.mark) }}<span>{{ destination.label }}</span></a>
+            {% endfor %}
         </h1></nav>
     </header>
     {% include "_partial/components/travel-journal.njk" %}

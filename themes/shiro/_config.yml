@@ -19,8 +19,8 @@ analytics:
     id: ""
   # Microsoft Clarity
   clarity:
-    enabled: true
-    id: "vzb6r72095"
+    enabled: false
+    id: ""
 
 # Comment systems
 comments:

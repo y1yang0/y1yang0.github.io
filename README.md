@@ -9,7 +9,7 @@ npm ci
 npm run server -- --port 4000
 ```
 
-Build the static site with `npm run build`. Hexo writes the generated files to `public/`. The existing GitHub Pages workflow deploys when changes are pushed to `main`.
+Run `npm test`, then build the static site with `npm run build`. Hexo writes the generated files to `public/`. The GitHub Pages workflow tests and builds pull requests; deployment runs only when changes are pushed to `main`.
 
 ## Project files
 
@@ -18,6 +18,10 @@ Build the static site with `npm run build`. Hexo writes the generated files to `
 - `themes/shiro/layout/`: page templates and the inline SVG banner in `_partial/components/banner-line-art.njk`.
 - `themes/shiro/source/css/journal.css`: colors, typography, layouts, and mobile/print styles.
 - `themes/shiro/source/css/travel-journal.css`: the travel map and albums.
+- `themes/shiro/source/js/travel-journal.js`: Journal initialization; `js/travel/` contains the map, album loader, photo viewer, and navigation modules.
+- `tools/travel-countries.js`: country names, routes, map levels, terrain, and attribution.
+- `tools/travel-journal.js`: Markdown compilation, region grouping, and shared photo statistics.
+- `tools/data/`: build-only map boundaries, legacy place names, and source metadata.
 - `source/_posts/`: Markdown articles.
 - `source/about/index.md`: personal background.
 
@@ -35,7 +39,7 @@ Put photos in `source/images/travel/`, then edit `source/journal/index.md`. Jour
 ![自划船](/images/travel/hangzhou-xihu1.jpg)
 ```
 
-Keep `layout: journal` and `travel_journal: true` in the page's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `source/travel/china-cities.json`. Hexo embeds the map SVG and city index in the page, so the map does not need a separate data request or an external map service. The previous dated URL redirects to `/journal/` and preserves city selections.
+Keep `layout: journal` and `travel_journal: true` in the page's front matter. First-level headings select cities; second-level headings group photos by place within that city. The theme reads the albums directly from Markdown; city boundaries are in `tools/data/china-map.json`. Hexo embeds the map SVG and place index in the page, so the map does not need a separate data request or an external map service. The previous dated URL redirects to `/journal/` and preserves city selections.
 
 The title's **China / Japan** country links open `/journal/` and `/journal/japan/`. Each country loads only its own map and album data; terrain textures are loaded only for China, while foreign maps use flat boundaries and photo-count fills. Location/photo links and browser Back/Forward continue to work independently on both routes. Journal has no search control; select a location directly on the map or from the recorded-album buttons.
 
@@ -51,12 +55,16 @@ For Japan, edit **`source/journal/Japan.md`** and put original photos in **`sour
 
 Existing city headings accept Chinese names and aliases such as `京都` / `jingdu` / `Kyoto`, `大阪` / `daban` / `Osaka`, and `东京` / `dongjing` / `Tokyo`. Original Japanese names and source map IDs also work. Prefecture headings accept both full names and short names, such as `兵库县` / `兵库`; prefecture names take priority when a city has the same name. Ambiguous names require the ID printed in the build warning. China colors and counts individual cities. Japan shows only its 47 prefectures: shapes, album buttons and photo collections all use that single level, without municipal borders or floating city maps. Each prefecture combines all its photos and place entries; color intensity uses its total photo count. Legacy city/photo links redirect within the page to the corresponding `region` selection and retain the selected photo. Future countries can use the same `mapLevel: 'province'` configuration.
 
-Japan's locally hosted map uses [MLIT administrative boundaries simplified by SmartNews Media Research](https://github.com/smartnews-smri/japan-topography), dated 2021, with small islands restored from the more detailed source. MLIT source and processing credit remain in the SVG description and source metadata; the map has no visible technical caption. Source URLs, pinned checksums and processing notes are in `source/travel/japan-cities.json`, whose municipality lookup is used only during builds to support existing Markdown headings. Browsers receive only prefecture geometry and entries, without a terrain texture. Simplified Han-character names use [OpenCC](https://github.com/BYVoid/OpenCC) dictionaries (Apache-2.0), with common Chinese name overrides. Regenerate Japan's map assets with `python tools/build-japan-map.py` (NumPy and Pillow); normal Hexo builds use the checked-in assets and make no map-data requests.
+Japan's locally hosted map uses [MLIT administrative boundaries simplified by SmartNews Media Research](https://github.com/smartnews-smri/japan-topography), dated 2021. MLIT source and processing credit remain in the SVG description and source metadata; the map has no visible technical caption. Source URLs, pinned checksums and processing notes are in `tools/data/japan-map.json`, whose compact municipality lookup supports existing Markdown headings without keeping municipal geometry. Browsers receive only prefecture geometry and entries, without a terrain texture. Simplified Han-character names use [OpenCC](https://github.com/BYVoid/OpenCC) dictionaries (Apache-2.0), with common Chinese name overrides. Regenerate Japan's map data with `python tools/build-japan-map.py`, using Python's standard library; normal Hexo builds use the checked-in assets and make no map-data requests.
 
 The China map adds a locally hosted shaded-relief texture, `source/travel/china-relief.png` (about 199 KiB), derived from [Natural Earth's public-domain shaded relief](https://www.naturalearthdata.com/downloads/50m-raster-data/50m-shaded-relief/). It is projected to the same coordinates as the city boundaries and shared by the main map and province hover layers. On desktop, hovering a Chinese province lifts and enlarges it, labels its cities, and lets the reader select a city directly. Touch devices keep direct city selection. City selection initializes independently of the image, so a slow or failed terrain request does not block the map. This is a static terrain texture; the South China Sea inset remains schematic. On phones, selected albums show a full-width map with a return button; coverage information remains in the atlas view.
 
-Normal site builds use the checked-in terrain asset without processing or downloading GIS data. To regenerate it, run `python tools/build-china-relief.py` with NumPy and Pillow installed. The generator caches its source archive in the OS temporary directory and records source URLs, licensing, hashes, and projection accuracy in `source/travel/china-relief.metadata.json`.
+Normal site builds use the checked-in terrain asset without processing or downloading GIS data. To regenerate it, run `python tools/build-china-relief.py` with NumPy and Pillow installed. The generator caches its source archive in the OS temporary directory and records source URLs, licensing, hashes, and projection accuracy in `tools/data/china-relief.metadata.json`. Build-only JSON and metadata stay out of `public/`; `source/travel/` contains only the browser's China terrain image.
 
 City albums and the full-screen viewer both use the original image files directly. Album images load lazily as they approach the viewport, and the viewer provides a magnifier for inspecting details. Keep adding photos and Markdown links as before; no image conversion or preview generation is needed.
 
 During a build, Journal checks that every local photo exists and that each path's spelling and capitalization match the file exactly, including on Windows. A missing or mismatched path stops the build and identifies the Markdown source and link to fix. The build reads original image headers to provide layout dimensions, accounting for EXIF rotation, so each photograph has the right amount of space before it loads. No converted images or metadata cache files are generated.
+
+Country links are rendered from the registry in `tools/travel-countries.js`. A new country needs a registry entry, map data in `tools/data/<code>-map.json`, and a Journal Markdown page. Foreign countries use `mapLevel: 'province'` and no terrain by default convention; a custom country mark is optional because unknown marks use a generic compass. An explicitly unknown `travel_country` stops the build instead of silently loading China.
+
+The browser consumes one normalized album model and the build's photo counts and color weights. Navigation owns location/photo URLs and history restoration; map, album, and viewer modules communicate through callbacks. Journal has its own layout styles, separate from article prose. Its asset revision covers all modules, so editing a child module also refreshes cached imports. `npm test` uses Node's built-in test runner to check parsing, region grouping, image metadata and paths, legacy navigation, and module cache invalidation.

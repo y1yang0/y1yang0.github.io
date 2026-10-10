@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
-"""Generate checked-in Japan SVG geometry and relief; ordinary Hexo builds are offline.
+"""Generate Japan prefecture geometry and legacy heading lookup with Python's stdlib.
 
-Requires NumPy and Pillow only for this manual generation step. Boundary sources
-are MLIT's 2021 administrative areas, simplified by SmartNews Media Research.
-Tokyo's 23 special wards form one travel destination; designated cities are
-already merged in the source. Other cities, towns and villages remain selectable.
+Ordinary Hexo builds use the checked-in data without downloading map sources.
+Boundary sources are MLIT's 2021 areas, simplified by SmartNews Media Research.
+Municipal names and IDs remain available for existing Markdown and photo links.
 """
 from __future__ import annotations
 
 import hashlib
-import importlib.util
-import io
 import json
 import math
 from pathlib import Path
 import re
-import sys
 import tempfile
 from urllib.request import Request, urlopen
-import zipfile
-
-import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path(tempfile.gettempdir()) / 'codex-japan-map'
@@ -31,8 +23,6 @@ SOURCES = {
     'prefectures.json': ('prefectures.json', '7e42c97adc115eb73e0521e8fa6bd21d0ac544f4ebd0a80fef121a71cb540887'),
 }
 OPENCC = 'https://raw.githubusercontent.com/BYVoid/OpenCC/3ac34aa439a9908dd49fa92b5174b46314787ac2/data/dictionary/'
-DETAIL_URL = BASE.replace('/s0001/', '/s0010/') + 'N03-21_210101_designated_city.json'
-DETAIL_HASH = '5dc58fbe979c68c4af59b17255c62df580a93c434b354f867971537dceab3d33'
 VIEW = [0, 0, 1000, 900]
 # Familiar Chinese names for kana city names; Japanese spellings remain aliases.
 NAMES = {
@@ -46,7 +36,7 @@ NAMES = {
     '40229': '三山市', '45209': '虾野市', '46220': '南萨摩市', '46219': '市来串木野市',
     '47213': '宇流麻市',
 }
-# Pinyin is optional for headings/search; image basenames are never interpreted.
+# Pinyin is optional for headings; image basenames are never interpreted.
 ALIASES = {
     '26100': ['jingdu', 'kyoto'], '27100': ['daban', 'osaka'], '29201': ['nailiang', 'nara'],
     '01100': ['zhahuang', 'sapporo'], '14100': ['hengbin', 'yokohama'],
@@ -127,21 +117,17 @@ def raw_project(point):
 
 
 def main():
-    data = {name: decode(json.loads(cached(name, BASE + filename, checksum)))
+    sources = {name: json.loads(cached(name, BASE + filename, checksum))
             for name, (filename, checksum) in SOURCES.items()}
-    detail = {props['N03_007']: polygons for props, polygons in
-              decode(json.loads(cached('municipalities-detail.json', DETAIL_URL, DETAIL_HASH)))}
-    # Coarse simplification drops several small inhabited islands entirely.
-    # Restore just those municipalities from the 1% source.
-    data['municipalities.json'] = [(props, polygons or detail.get(props['N03_007'], []))
-                                   for props, polygons in data['municipalities.json']]
+    prefectures = decode(sources['prefectures.json'])
+    municipalities = next(iter(sources['municipalities.json']['objects'].values()))['geometries']
     japanese, simplified = dictionary('JPShinjitaiCharacters.txt'), dictionary('TSCharacters.txt')
     overrides = {'戸': '户', '黒': '黑', '姫': '姬', '呉': '吴', '渋': '涩', '郷': '乡', '舎': '舍', '眞': '真', '竝': '并'}
 
     def chinese(name):
         return ''.join(overrides.get(c, simplified.get(japanese.get(c, c), japanese.get(c, c))) for c in name)
 
-    points = [raw_project(point) for _, polygons in data['prefectures.json'] for polygon in polygons for ring in polygon for point in ring]
+    points = [raw_project(point) for _, polygons in prefectures for polygon in polygons for ring in polygon for point in ring]
     low = [min(p[i] for p in points) for i in range(2)]
     high = [max(p[i] for p in points) for i in range(2)]
     scale = min((VIEW[2] - 44) / (high[0] - low[0]), (VIEW[3] - 44) / (high[1] - low[1]))
@@ -167,77 +153,38 @@ def main():
         return {'path': ''.join(svg_ring(ring) for poly in projected for ring in poly if len(ring) >= 3), 'center': center, 'bounds': bounds}
 
     provinces = [{'id': f'JP-{i:02}', 'name': chinese(props['N03_001']), **shape(polygons)}
-                 for i, (props, polygons) in enumerate(data['prefectures.json'], 1)]
-    cities = []
-    tokyo = []
-    for props, polygons in data['municipalities.json']:
+                 for i, (props, polygons) in enumerate(prefectures, 1)]
+    heading_places = []
+    for municipality in municipalities:
+        props = municipality['properties']
         code = props['N03_007']
         if not code:
             continue
-        if not polygons:
-            raise ValueError(f'Missing island geometry: {code}')
         if '13101' <= code <= '13123':
-            tokyo.extend(polygons)
             continue
         original = props['N03_004'] or props['N03_003']
         name = NAMES.get(code, chinese(original))
         aliases = list(dict.fromkeys([original, re.sub(r'[市町村]$', '', original), re.sub(r'[市町村]$', '', name), *ALIASES.get(code, [])]))
-        cities.append({'id': 'JP-' + code, 'name': name, 'province': chinese(props['N03_001']),
-                       'kind': 'city' if original.endswith('市') else 'town', 'aliases': aliases, **shape(polygons)})
-    cities.append({'id': 'JP-13100', 'name': '东京', 'province': '东京都', 'kind': 'city',
-                   'aliases': ['東京', '东京市', '东京23区', '東京23区', 'dongjing', 'tokyo'], **shape(tokyo)})
-    cities.sort(key=lambda city: city['id'])
+        heading_places.append({'id': 'JP-' + code, 'name': name, 'province': chinese(props['N03_001']), 'aliases': aliases})
+    heading_places.append({'id': 'JP-13100', 'name': '东京', 'province': '东京都',
+                           'aliases': ['東京', '东京市', '东京23区', '東京23区', 'dongjing', 'tokyo']})
+    heading_places.sort(key=lambda place: place['id'])
     metadata = {
         'source': 'Japan MLIT National Land Numerical Information, Administrative Areas 2021; simplified by SmartNews Media Research',
         'sourceUrl': 'https://github.com/smartnews-smri/japan-topography',
         'attribution': '国土交通省 国土数値情報（行政区域・2021年）を加工して作成',
         'licenseUrl': 'https://nlftp.mlit.go.jp/ksj/other/agreement.html',
         'sources': {name: {'url': BASE + f, 'sha256': h} for name, (f, h) in SOURCES.items()},
-        'islandRecoverySource': {'url': DETAIL_URL, 'sha256': DETAIL_HASH},
-        'names': 'Common Chinese aliases plus simplified Han characters. Original names remain searchable. OpenCC dictionaries (Apache-2.0): https://github.com/BYVoid/OpenCC',
+        'names': 'Common Chinese aliases plus simplified Han characters. Original names remain valid headings. OpenCC dictionaries (Apache-2.0): https://github.com/BYVoid/OpenCC',
         'projection': {'name': 'Spherical Mercator', 'scale': scale, 'offset': offset},
-        'units': 'Cities, towns and villages; designated-city wards merged by source; Tokyo special wards combined as one travel destination.',
+        'units': 'Prefectures. Municipal names and IDs are a build-time legacy lookup; Tokyo special wards map to one heading destination.',
     }
-    output = {'viewBox': VIEW, 'cities': cities, 'provinces': provinces,
+    output = {'viewBox': VIEW, 'headingPlaces': heading_places, 'provinces': provinces,
               'outlinePath': ''.join(p['path'] for p in provinces), 'metadata': metadata}
-    target = ROOT / 'source/travel/japan-cities.json'
+    target = ROOT / 'tools/data/japan-map.json'
+    target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(output, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-
-    # Reuse the existing public-domain terrain archive and palette writer.
-    sys.dont_write_bytecode = True
-    spec = importlib.util.spec_from_file_location('journal_relief', ROOT / 'tools/build-china-relief.py')
-    relief = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(relief)
-    archive = relief.get_archive(Path(tempfile.gettempdir()) / 'codex-china-relief/SR_50M.zip')
-    with zipfile.ZipFile(io.BytesIO(archive)) as source_zip:
-        raster = np.array(Image.open(io.BytesIO(source_zip.read('SR_50M.tif'))).convert('L'))
-        dx, _, _, dy, lon0, lat0 = map(float, source_zip.read('SR_50M.tfw').decode().split())
-    size = (1600, 1440)
-    longitude = np.degrees(((np.arange(size[0]) + .5) * VIEW[2] / size[0] - offset[0]) / scale)
-    latitude = np.degrees(2 * np.arctan(np.exp(-((np.arange(size[1]) + .5) * VIEW[3] / size[1] - offset[1]) / scale)) - math.pi / 2)
-    px = np.clip((longitude - lon0) / dx, 0, raster.shape[1] - 2)
-    py = np.clip((latitude - lat0) / dy, 0, raster.shape[0] - 2)
-    ix, iy = px.astype(int), py.astype(int)
-    fx, fy = px - ix, (py - iy)[:, None]
-    sampled = (raster[iy[:, None], ix] * (1 - fx) * (1 - fy) + raster[iy[:, None], ix + 1] * fx * (1 - fy)
-               + raster[iy[:, None] + 1, ix] * (1 - fx) * fy + raster[iy[:, None] + 1, ix + 1] * fx * fy)
-    gray = np.clip(255 - 1.2 * np.maximum(206 - sampled, 0), 0, 255).astype(np.uint8)
-    mask = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(mask)
-    for _, polygons in data['prefectures.json']:
-        for polygon in polygons:
-            for i, ring in enumerate(polygon):
-                draw.polygon([(project(p)[0] * size[0] / VIEW[2], project(p)[1] * size[1] / VIEW[3]) for p in ring], fill=255 if i == 0 else 0)
-    gray = np.where(np.asarray(mask.filter(ImageFilter.MaxFilter(3))) > 0, gray, 255).astype(np.uint8)
-    texture = target.with_name('japan-relief.png')
-    relief.write_png(gray, texture, 16)
-    texture.with_suffix('.metadata.json').write_text(json.dumps({
-        'source': relief.SOURCE_PAGE, 'download': relief.SOURCE_URL, 'license': 'Public domain',
-        'sourceSha256': relief.SOURCE_SHA256, 'assetSha256': hashlib.sha256(texture.read_bytes()).hexdigest(),
-        'projection': metadata['projection'], 'viewBox': VIEW, 'size': size,
-        'generator': 'tools/build-japan-map.py',
-    }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    print(json.dumps({'cities': len(cities), 'prefectures': len(provinces), 'mapBytes': target.stat().st_size, 'terrainBytes': texture.stat().st_size}))
+    print(json.dumps({'headingPlaces': len(heading_places), 'prefectures': len(provinces), 'mapBytes': target.stat().st_size}))
 
 
 if __name__ == '__main__':

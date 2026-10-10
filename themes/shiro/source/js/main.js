@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
+    initializeTheme();
+    initializeArchives();
+    initializeArticleTools();
+});
+
+function initializeTheme() {
     const root = document.documentElement;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const themeToggle = document.getElementById('themeToggle');
     const themePicker = document.getElementById('themePicker');
     const themeMenu = document.getElementById('themeMenu');
@@ -75,7 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('storage', event => {
         if (event.key === 'shiro-theme' || event.key === null) applyTheme(event.newValue);
     });
+}
 
+function initializeArchives() {
     // Keep archive rows equal without reserving two title lines on every screen.
     document.querySelectorAll('.archive-list').forEach(list => {
         const entries = [...list.querySelectorAll('.archive-entry')];
@@ -97,7 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         titles.forEach(title => observer.observe(title));
         sizeArchiveRows();
     });
+}
 
+function initializeArticleTools() {
+    if (!document.querySelector('.prose-shiro')) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const getCode = pre => {
         if (!pre) return '';
         const lines = pre.querySelectorAll('.line');
@@ -343,4 +354,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const copyArticle = document.getElementById('copyArticleBtn');
     copyArticle?.addEventListener('click', () => copyText(extractArticle(), copyArticle));
-});
+}

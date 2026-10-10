@@ -185,8 +185,9 @@ def main():
     parser.add_argument("--contrast", type=float, default=1.2)
     parser.add_argument("--cache", type=Path, default=Path(tempfile.gettempdir()) / "codex-china-relief")
     parser.add_argument("--output", type=Path, default=ROOT / "source/travel/china-relief.png")
+    parser.add_argument("--metadata-output", type=Path, help="Override the source metadata destination")
     args = parser.parse_args()
-    map_path = ROOT / "source/travel/china-cities.json"
+    map_path = ROOT / "tools/data/china-map.json"
     map_bytes = map_path.read_bytes()
     data = json.loads(map_bytes)
     affine, residual = fit_projection(data)
@@ -247,7 +248,12 @@ def main():
             "limitations": "Static shaded-relief texture, not elevation geometry. The South China Sea inset has its own schematic coordinates and is not covered by this layer. Natural Earth's 1:50m coastline is generalized; the application's existing boundary clip controls the displayed outline.",
         },
     }
-    metadata_path = args.output.with_suffix(".metadata.json")
+    metadata_path = args.metadata_output or (
+        ROOT / "tools/data/china-relief.metadata.json"
+        if args.output.resolve() == (ROOT / "source/travel/china-relief.png").resolve()
+        else args.output.with_suffix(".metadata.json")
+    )
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"asset": str(args.output), "size": size, "bytes": metadata["bytes"], "projectionResidual": residual}, indent=2))
 

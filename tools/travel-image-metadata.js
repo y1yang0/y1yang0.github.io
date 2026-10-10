@@ -97,8 +97,8 @@ function resolveExactPhoto(sourceDir, pathname, directories) {
 }
 
 function eachPhoto(journal) {
-  return Object.values(journal.cities || {}).flatMap(city =>
-    (city.entries || []).flatMap(entry => entry.photos || []));
+  return Object.values(journal.albums || {}).flatMap(album =>
+    (album.entries || []).flatMap(entry => entry.photos || []));
 }
 
 function applyTravelImageMetadata(journal, metadata) {

@@ -1,3 +1,7 @@
+{% macro render_entry(post, date_format='MMM DD') %}
+<article class="archive-entry"><time datetime="{{ date(post.date, 'YYYY-MM-DD') }}">{{ date(post.date, date_format) }}</time><h3><a href="{{ url_for(post.path) }}">{{ post.title }}</a></h3><a class="archive-open" href="{{ url_for(post.path) }}" aria-label="Read {{ post.title }}"><span aria-hidden="true">→</span></a></article>
+{% endmacro %}
+
 {% macro render_list(posts) %}
 <div class="archive-list">
 {% set currentYear = "" %}
@@ -8,7 +12,7 @@
         {% set currentYear = postYear %}
         <section class="archive-year"><h2><span class="archive-year-label">{{ currentYear }}{% if currentYear == "2026" and is_archive() %}<sup class="archive-era-note" title="The AI era begins in 2026">AI era</sup>{% endif %}</span></h2><div>
     {% endif %}
-    <article class="archive-entry"><time datetime="{{ date(post.date, 'YYYY-MM-DD') }}">{{ date(post.date, 'MMM DD') }}</time><h3><a href="{{ url_for(post.path) }}">{{ post.title }}</a></h3><a class="archive-open" href="{{ url_for(post.path) }}" aria-label="Read {{ post.title }}"><span aria-hidden="true">→</span></a></article>
+    {{ render_entry(post) }}
 {% endfor %}
 {% if currentYear != "" %}</div></section>{% endif %}
 </div>
