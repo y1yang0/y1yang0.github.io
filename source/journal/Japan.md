@@ -9,6 +9,18 @@ permalink: journal/japan/index.html
 
 # 大阪
 
+## 市中心
+
+![](../images/travel/japan/daban-downtown1.jpg)
+
+## 通天阁
+
+![](../images/travel/japan/daban-ttg.jpg)
+
+## 黑门市场
+
+![](../images/travel/japan/daban-hmsc.jpg)
+
 ## 大阪海游馆附近
 
 ![天保山摩天轮俯瞰](../images/travel/japan/daban-hyg1.jpg)
@@ -33,7 +45,15 @@ permalink: journal/japan/index.html
 
 ![奈良公园的鹿](../images/travel/japan/nailiang-deer4.jpg)
 
+![奈良公园的鹿](../images/travel/japan/nailiang-deer5.jpg)
+
 ![若草山俯瞰奈良](../images/travel/japan/nailiang-global.jpg)
+
+# 兵库
+
+## 神户六甲山
+
+![六甲山俯瞰神户](../images/travel/japan/bingku-liujiashan.jpg)
 
 # 京都
 

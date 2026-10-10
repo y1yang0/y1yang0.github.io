@@ -13,14 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const retry = document.getElementById('travelRetry');
     const tooltip = document.getElementById('travelMapTooltip');
     const mouseMagnifier = window.matchMedia('(any-hover: hover) and (any-pointer: fine)');
-    const search = document.getElementById('travelSearch');
-    const cityList = document.getElementById('travelCityList');
     const albumCities = document.getElementById('travelAlbumCities');
-    const citySearch = document.getElementById('travelCitySearch');
-    const searchToggle = document.getElementById('travelSearchToggle');
-    const searchPanel = document.getElementById('travelSearchPanel');
-    const searchResults = document.getElementById('travelSearchResults');
-    const searchEmpty = document.getElementById('travelSearchEmpty');
     const details = document.getElementById('travelDetails');
     const heading = document.getElementById('travelCityName');
     const entriesNode = document.getElementById('travelEntries');
@@ -40,17 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const allCitiesButton = document.getElementById('travelAllCities');
     const svgNS = 'http://www.w3.org/2000/svg';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fallbackCities = (country === 'japan' ? [
-        ['JP-26100', '京都市', '京都府'], ['JP-27100', '大阪市', '大阪府'],
-        ['JP-13100', '东京', '东京都'], ['JP-29201', '奈良市', '奈良县']
-    ] : [
+    const fallbackCities = (provinceLevel ? [] : [
         ['330100', '杭州市', '浙江省'], ['110000', '北京市', '北京市'],
         ['310000', '上海市', '上海市'], ['510100', '成都市', '四川省'],
         ['320100', '南京市', '江苏省'], ['440100', '广州市', '广东省'],
         ['610100', '西安市', '陕西省'], ['320500', '苏州市', '江苏省'],
         ['500000', '重庆市', '重庆市'], ['350200', '厦门市', '福建省']
     ]).map(([id, name, province]) => ({id, name, province}));
-    let journal = {cities: {}, defaultCity: country === 'japan' ? 'JP-26100' : '330100'};
+    let journal = {cities: {}, defaultCity: provinceLevel ? '' : '330100'};
     try {
         const parsed = JSON.parse(document.getElementById('travelJournalData')?.textContent || '{}');
         if (parsed && typeof parsed === 'object') journal = {...journal, ...parsed};
@@ -65,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     let cityById = new Map(cities.map(city => [city.id, city]));
     let activeId = '';
-    let activeResult = -1;
     let gallery = [];
     let albumObserver;
     let albumLoadEpoch = 0;
@@ -126,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const cityDescription = city => `${city.name}${hasRecord(city.id) ? ` · ${photoCount(city.id)} 张照片` : ''}`;
     const mapDescription = city => provinceLevel ? `${city.province}${mapRecorded(city.id) ? ` · ${mapPhotoCount(city.id)} 张照片` : ''}` : cityDescription(city);
-    const shortName = name => text(name).replace(/(?:特别行政区|自治州|地区|市)$/u, '');
+    const shortName = name => provinceLevel ? text(name) : text(name).replace(/(?:特别行政区|自治州|地区|市)$/u, '');
     const make = (tag, className, content) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -169,72 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', () => selectCity(city.id, {scroll: true, focus: true}));
             albumCities.append(button);
         });
-    }
-    function closeSearch() {
-        searchResults.hidden = true;
-        search.setAttribute('aria-expanded', 'false');
-        search.removeAttribute('aria-activedescendant');
-        activeResult = -1;
-        cityList.querySelectorAll('[role="option"]').forEach(option => option.setAttribute('aria-selected', 'false'));
-    }
-    function closeSearchPanel({focus = false} = {}) {
-        closeSearch();
-        searchPanel.hidden = true;
-        searchToggle.setAttribute('aria-expanded', 'false');
-        if (focus) searchToggle.focus({preventScroll: true});
-    }
-    function openSearchPanel() {
-        hideProvinceFocus();
-        searchPanel.hidden = false;
-        searchToggle.setAttribute('aria-expanded', 'true');
-        search.focus({preventScroll: true});
-    }
-    function setActiveResult(index, scroll = false) {
-        const options = [...cityList.querySelectorAll('[role="option"]')];
-        if (!options.length) return;
-        activeResult = (index + options.length) % options.length;
-        options.forEach((option, i) => option.setAttribute('aria-selected', String(i === activeResult)));
-        const option = options[activeResult];
-        search.setAttribute('aria-activedescendant', option.id);
-        if (scroll) {
-            const bounds = cityList.getBoundingClientRect();
-            const item = option.getBoundingClientRect();
-            if (item.top < bounds.top) cityList.scrollTop -= bounds.top - item.top;
-            else if (item.bottom > bounds.bottom) cityList.scrollTop += item.bottom - bounds.bottom;
-        }
-    }
-    function renderSearchResults() {
-        const query = search.value.trim().toLocaleLowerCase();
-        closeSearch();
-        cityList.replaceChildren();
-        cityList.scrollTop = 0;
-        if (!query) return;
-        const matching = cities.filter(city => {
-            const aliases = Array.isArray(city.aliases) ? city.aliases.filter(alias => typeof alias === 'string').join(' ') : '';
-            return `${city.name} ${shortName(city.name)} ${city.province} ${text(city.pinyin)} ${aliases} ${city.id}`.toLocaleLowerCase().includes(query);
-        });
-        const rank = city => shortName(city.name).toLocaleLowerCase() === query ? 0 : city.name.toLocaleLowerCase().startsWith(query) ? 1 : hasRecord(city.id) ? 2 : 3;
-        matching.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'zh-CN'));
-        matching.forEach(city => {
-            const option = make('button', 'travel-city-option');
-            option.type = 'button';
-            option.tabIndex = -1;
-            option.id = `travelSearchOption-${city.id}`;
-            option.dataset.cityId = city.id;
-            option.setAttribute('role', 'option');
-            option.setAttribute('aria-selected', 'false');
-            option.title = city.name;
-            option.addEventListener('pointerdown', event => event.preventDefault());
-            option.append(make('span', '', shortName(city.name)));
-            if (city.province && city.province !== city.name) option.append(make('small', '', city.province));
-            option.addEventListener('click', () => selectCity(city.id, {scroll: true, focus: true}));
-            cityList.append(option);
-        });
-        cityList.hidden = !matching.length;
-        searchEmpty.hidden = !!matching.length;
-        searchResults.hidden = false;
-        search.setAttribute('aria-expanded', 'true');
-        if (matching.length) setActiveResult(0);
     }
     function clearAlbumLoads() {
         albumLoadEpoch += 1;
@@ -280,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesNode.replaceChildren();
         entriesNode.hidden = !notes.length;
         empty.hidden = !!notes.length;
-        document.getElementById('travelActiveProvince').textContent = city.province || countryName;
+        document.getElementById('travelActiveProvince').textContent = provinceLevel ? countryName : city.province || countryName;
         heading.textContent = shortName(city.name);
         const count = photoCount(city.id);
         document.getElementById('travelCityMeta').textContent = notes.length
@@ -359,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const matrix = svg.getScreenCTM();
         const scale = matrix ? Math.max(.01, Math.hypot(matrix.a, matrix.b)) : 1;
         markers.replaceChildren();
+        if (provinceLevel) { renderProvinceLabels(scale); return; }
         const selected = root.dataset.view === 'album' ? cityById.get(activeId) : null;
         const markerIds = new Set(heartCityIds);
         const visible = [...markerIds].map(id => cityById.get(id)).filter(Boolean);
@@ -469,7 +393,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function navigationRoute() {
         const params = new URLSearchParams(location.hash.slice(1));
-        return {city: params.get('city') || '', photo: params.get('photo') || ''};
+        const legacy = params.get('city') || '';
+        const legacyRegion = country === 'japan' && /^JP-\d{5}$/.test(legacy) ? legacy.slice(0, 5) : legacy;
+        const city = provinceLevel ? params.get('region') || journal.legacyPlaces?.[legacy] || legacyRegion : legacy;
+        return {city, photo: params.get('photo') || ''};
     }
     function hashCity() {
         return navigationRoute().city;
@@ -494,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function writeNavigation(city, photo = '', {replace = false, photoEntry = false} = {}) {
         const params = new URLSearchParams();
-        if (city) params.set('city', city);
+        if (city) params.set(provinceLevel ? 'region' : 'city', city);
         if (city && photo) params.set('photo', photo);
         const query = params.toString();
         const hash = query ? `#${query}` : '';
@@ -516,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeId !== city.id || root.dataset.view !== 'album') selectCity(city.id, {hash: false});
             else if (refreshMap) {
                 heading.textContent = shortName(city.name);
-                document.getElementById('travelActiveProvince').textContent = city.province || countryName;
+                document.getElementById('travelActiveProvince').textContent = provinceLevel ? countryName : city.province || countryName;
                 paths.forEach((cityPaths, id) => cityPaths.forEach(path => path.classList.toggle('is-selected', id === city.id)));
                 focusCityMap(city);
                 renderCityControls();
@@ -528,6 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (viewer.open) viewer.close();
                 if (route.photo) writeNavigation(city.id, '', {replace: true});
+            }
+            if (provinceLevel && new URLSearchParams(location.hash.slice(1)).has('city')) {
+                writeNavigation(city.id, index >= 0 ? route.photo : '', {replace: true, photoEntry: !!saved?.photoEntry});
             }
         } else {
             showAtlas({hash: false});
@@ -555,8 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tooltip.hidden = true;
         cancelViewAnimation();
         if (enteringAlbum) view = [...initialBox];
-        closeSearchPanel();
-        search.value = '';
         paths.forEach((cityPaths, cityId) => cityPaths.forEach(path => path.classList.toggle('is-selected', cityId === activeId)));
         focusCityMap(city, {animate: scroll});
         renderEntries(city);
@@ -583,15 +511,13 @@ document.addEventListener('DOMContentLoaded', () => {
         root.dataset.view = 'atlas';
         details.hidden = true;
         allCitiesButton.hidden = true;
-        closeSearchPanel();
-        search.value = '';
         tooltip.hidden = true;
         paths.forEach(cityPaths => cityPaths.forEach(path => path.classList.remove('is-selected')));
         view = [...atlasView];
         applyView();
         renderCityControls();
         if (hash) writeNavigation('', '');
-        live.textContent = '全国旅行地图，选择一座城市查看相册。';
+        live.textContent = provinceLevel ? '全国旅行地图，选择一个地区查看相册。' : '全国旅行地图，选择一座城市查看相册。';
         if (scroll) root.querySelector('.travel-atlas-layout').scrollIntoView({behavior: reducedMotion ? 'instant' : 'smooth', block: 'start'});
         if (focus) svg.focus({preventScroll: true});
     }
@@ -1152,6 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     function showProvinceHover(event, city) {
+        if (provinceLevel) return false;
         if (!mapReady || root.dataset.view !== 'atlas'
             || event.pointerType !== 'mouse' || !mouseMagnifier.matches) {
             hideProvinceFocus();
@@ -1327,9 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mapReady = true;
             mapStatus.hidden = true;
             updateStats();
-            const pendingQuery = search.value;
             restoreNavigation({force: true, refreshMap: true, preserveScroll: true});
-            if (pendingQuery) { search.value = pendingQuery; renderSearchResults(); }
             applyView();
         } catch (_) {
             setMapStatus('地图交互暂时不可用，仍可查看已记录城市的相册。');
@@ -1339,36 +1264,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     retry?.addEventListener('click', initializeMap);
-    searchToggle.addEventListener('click', () => {
-        if (searchPanel.hidden) openSearchPanel();
-        else closeSearchPanel();
-    });
-    search.addEventListener('input', event => { if (!event.isComposing) renderSearchResults(); });
-    search.addEventListener('compositionend', renderSearchResults);
-    search.addEventListener('focus', () => { if (search.value.trim()) renderSearchResults(); });
-    search.addEventListener('keydown', event => {
-        if (event.isComposing || event.keyCode === 229) return;
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closeSearchPanel({focus: true});
-            return;
-        }
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            if (!search.value.trim()) return;
-            event.preventDefault();
-            const wasClosed = searchResults.hidden;
-            if (wasClosed) renderSearchResults();
-            const count = cityList.querySelectorAll('[role="option"]').length;
-            if (!count) return;
-            setActiveResult(wasClosed ? (event.key === 'ArrowDown' ? 0 : count - 1) : activeResult + (event.key === 'ArrowDown' ? 1 : -1), true);
-        }
-        if (event.key === 'Enter' && !searchResults.hidden && activeResult >= 0) {
-            event.preventDefault();
-            cityList.querySelectorAll('[role="option"]')[activeResult]?.click();
-        }
-    });
-    document.addEventListener('pointerdown', event => { if (!citySearch.contains(event.target)) closeSearchPanel(); });
-    citySearch.addEventListener('focusout', event => { if (!citySearch.contains(event.relatedTarget)) closeSearchPanel(); });
     window.addEventListener('hashchange', () => restoreNavigation());
     window.addEventListener('popstate', () => restoreNavigation());
     new ResizeObserver(() => { hideProvinceFocus(); renderMarkers(); }).observe(svg);

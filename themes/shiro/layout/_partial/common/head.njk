@@ -13,7 +13,7 @@
             document.documentElement.classList.toggle('dark', theme === 'dark');
         })();
     </script>
-    <title>{% if is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() or page.travel_journal %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
+    <title>{% if page.travel_journal %}Journal{% elif is_home() %}{{ config.title | default("白夜書簡", true) }}{% elif is_post() %}{{ page.title }}{% else %} {{ config.title | default("白夜書簡", true) }}{% endif %}</title>
 
     <!-- SEO: description -->
     {% set seo_desc = page.description | default(page.excerpt | striptags | trim | truncate(160, true, '...') | default(config.description, true), true) %}

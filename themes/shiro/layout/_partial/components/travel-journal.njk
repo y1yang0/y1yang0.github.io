@@ -1,31 +1,24 @@
 {% from "_partial/components/travel-art.njk" import travel_scene with context %}
 {% set travel_stats = travel_journal_stats(page) %}
 {% set country = travel_country(page) %}
+{% set location_label = '地区' if country.mapLevel == 'province' else '城市' %}
 <div class="travel-journal prose-shiro" id="travelJournal" data-view="atlas" data-country="{{ country.code }}" data-country-name="{{ country.name }}" data-map-level="{{ country.mapLevel }}" data-unit="{{ country.unit }}" data-coverage-label="{{ country.coverageLabel }}" lang="zh-CN">
     <div class="travel-atlas-layout">
-        <section class="travel-atlas" aria-label="城市旅行地图">
+        <section class="travel-atlas" aria-label="{{ location_label }}旅行地图">
             <header class="travel-atlas-heading">
-                <div class="travel-search-control" id="travelCitySearch">
-                    <button type="button" class="travel-search-toggle" id="travelSearchToggle" aria-controls="travelSearchPanel" aria-expanded="false"><span aria-hidden="true">⌕</span>搜索城市</button>
-                    <div class="travel-city-search" id="travelSearchPanel" hidden>
-                        <label class="travel-search"><span class="visually-hidden">搜索城市</span><input type="search" id="travelSearch" role="combobox" placeholder="输入城市名称" autocomplete="off" aria-autocomplete="list" aria-controls="travelCityList" aria-expanded="false"></label>
-                        <div class="travel-search-results" id="travelSearchResults" hidden><div id="travelCityList" role="listbox" aria-label="城市搜索结果"></div><p id="travelSearchEmpty" class="travel-search-empty" role="status" hidden>未找到城市</p></div>
-                    </div>
-                </div>
-                <div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>{{ country.coverageLabel }}</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>{{ country.countLabel }}</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" hidden>← 全部城市</button></div>
+                <div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>{{ country.coverageLabel }}</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>{{ country.countLabel }}</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" aria-label="返回{{ country.name }}全部{{ location_label }}地图" hidden>← 返回地图</button></div>
             </header>
-            <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的城市" hidden></nav>
+            <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的{{ location_label }}" hidden></nav>
             <div class="travel-map-stage">
-                <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">{{ country.name }}城市旅行地图</title><g id="travelMapCanvas" class="travel-map-canvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
+                <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">{{ country.name }}{{ location_label }}旅行地图</title>{% if country.code == 'japan' %}<desc>出典：国土交通省国土数値情報（行政区域・2021年）https://nlftp.mlit.go.jp/ksj/ を加工して作成。</desc>{% endif %}<g id="travelMapCanvas" class="travel-map-canvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
                 <div id="travelMapStatus" class="travel-map-status" role="status" hidden><button type="button" id="travelRetry" hidden>重新初始化</button></div>
                 <div id="travelMapTooltip" class="travel-map-tooltip" hidden></div>
                 <div class="travel-map-tools" role="group" aria-label="地图缩放"><button type="button" data-travel-zoom="in" aria-label="放大地图" title="放大" disabled>＋</button><button type="button" data-travel-zoom="out" aria-label="缩小地图" title="缩小" disabled>−</button><button type="button" data-travel-zoom="reset" aria-label="恢复全国视图" title="全国视图" disabled>⌖</button></div>
             </div>
-            <p id="travelKeyboardHint" class="visually-hidden">地图获得焦点后，可用方向键切换附近城市，按加号或减号缩放，按零恢复全国视图；也可搜索城市。</p>
-            {% if country.code == 'japan' %}<p class="travel-map-credit">地图：<a href="https://nlftp.mlit.go.jp/ksj/" target="_blank" rel="noopener noreferrer">日本国土交通省·2021年行政区域</a>，经简化处理。东京按23区合并展示。</p>{% endif %}
+            <p id="travelKeyboardHint" class="visually-hidden">地图获得焦点后，可用方向键切换附近{{ location_label }}，按加号或减号缩放，按零恢复全国视图。</p>
         </section>
         <aside class="travel-notebook" id="travelDetails" aria-labelledby="travelCityName" hidden>
-            <header class="travel-city-heading"><p class="travel-kicker" id="travelActiveProvince">城市相册</p><h2 id="travelCityName" tabindex="-1">选一座城市</h2><p id="travelCityMeta">暂无记录</p></header>
+            <header class="travel-city-heading"><p class="travel-kicker" id="travelActiveProvince">{{ location_label }}相册</p><h2 id="travelCityName" tabindex="-1">{% if country.mapLevel == 'province' %}选一个地区{% else %}选一座城市{% endif %}</h2><p id="travelCityMeta">暂无记录</p></header>
             <div id="travelEntries" class="travel-entries"></div>
             <div id="travelEmpty" class="travel-empty">{{ travel_scene() }}<p>暂无照片</p></div>
         </aside>

@@ -67,7 +67,7 @@ function inlineParts(tokens) {
   return { photos, text: text.trim() };
 }
 
-function parseTravelMarkdown(markdown, { cities = [], onWarning = () => {}, defaultCity = '330100' } = {}) {
+function parseTravelMarkdown(markdown, { cities = [], onWarning = () => {}, defaultCity = '330100', resolveHeading = value => resolveCity(cities, value) } = {}) {
   const records = new Map();
   let currentCity = null;
   let currentTitle = '';
@@ -120,7 +120,7 @@ function parseTravelMarkdown(markdown, { cities = [], onWarning = () => {}, defa
         if (token.depth === 1) {
           currentCity = null;
           currentTitle = '';
-          try { currentCity = resolveCity(cities, parts.text); } catch (error) { onWarning(error.message); }
+          try { currentCity = resolveHeading(parts.text); } catch (error) { onWarning(error.message); }
         } else {
           // Second-level headings are places within the selected city. Even
           // a place named after another city must not change the city context.
