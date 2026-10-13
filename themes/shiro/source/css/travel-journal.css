@@ -9,7 +9,7 @@
 .travel-country-tabs a:hover {color:var(--accent);}
 .travel-country-tabs a:focus-visible {outline:1px solid var(--accent);outline-offset:5px;}
 .travel-country-tabs h1>span {color:var(--line);font-weight:300;}
-.travel-journal {min-width:0;width:100%;max-width:none;font:14px/1.8 var(--sans);font-variant-numeric:lining-nums;overflow-wrap:break-word;}
+.travel-journal {--travel-map-control-size:30px;min-width:0;width:100%;max-width:none;font:14px/1.8 var(--sans);font-variant-numeric:lining-nums;overflow-wrap:break-word;}
 .travel-journal :is(h2,h3,p,figure) {margin:0;}
 .travel-journal button {font:inherit;cursor:pointer;}
 .travel-journal [hidden] {display:none!important;}
@@ -34,7 +34,9 @@
 .travel-journal[data-view=album] .travel-map-stats {column-gap:10px;}
 .travel-atlas-actions button {padding:0;background:transparent;border:0;color:var(--muted);font:11px/1.8 var(--sans);}
 .travel-atlas-actions button:hover {color:var(--accent);}
-#travelAllCities {color:var(--accent);}
+#travelAllCities {min-width:90px;height:var(--travel-map-control-size);padding:0 12px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--accent);font:11px/1 var(--sans);white-space:nowrap;}
+#travelAllCities:hover {background:var(--sage);}
+#travelAllCities:focus-visible {outline:1px solid var(--accent);outline-offset:3px;}
 .travel-album-cities {display:flex;gap:4px 14px;flex-wrap:wrap;max-height:180px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:12px 0 4px;padding-bottom:3px;}
 .travel-album-cities button {padding:3px 0;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--muted);font:12px/1.8 var(--sans);white-space:nowrap;}
 .travel-album-cities button:hover {color:var(--ink);}
@@ -89,7 +91,7 @@ html.dark .travel-map-terrain {opacity:.3;}
 .travel-photo-lens-crosshair::after {width:1px;height:13px;left:6px;top:0;}
 .travel-photo-lens-label {position:absolute;bottom:21px;left:12px;right:12px;width:fit-content;max-width:calc(100% - 24px);margin:auto;padding:3px 7px;border-radius:2px;background:var(--paper);color:var(--ink);font:11px/1.5 var(--sans);text-align:center;}
 .travel-map-tools {position:absolute;bottom:12px;left:0;display:flex;gap:4px;align-items:center;}
-.travel-map-tools button {width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);font:18px/1 var(--sans);}
+.travel-map-tools button {width:var(--travel-map-control-size);height:var(--travel-map-control-size);padding:0;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);font:18px/1 var(--sans);}
 .travel-map-tools button:hover {background:var(--sage);}
 .travel-map-tools button:disabled {opacity:.35;cursor:default;}
 .travel-notebook {min-width:0;border-left:1px solid var(--line);padding-left:32px;scroll-margin-top:calc(var(--header-height) + 20px);}
@@ -137,6 +139,7 @@ html.dark .travel-map-terrain {opacity:.3;}
     .travel-notebook {padding-left:22px;}
 }
 @media(max-width:760px) {
+    .travel-journal[data-view=album] {--travel-map-control-size:32px;}
     .travel-atlas-layout {grid-template-columns:minmax(0,1fr);gap:28px;padding-top:24px;}
     .travel-notebook {position:static;padding-left:0;border-left:0;border-top:1px solid var(--line);padding-top:22px;}
     .travel-journal h2 {font-size:25px;}
@@ -156,11 +159,9 @@ html.dark .travel-map-terrain {opacity:.3;}
     .travel-journal[data-view=album] .travel-atlas-heading {position:absolute;top:6px;right:0;z-index:4;margin:0;}
     .travel-journal[data-view=album] .travel-map-stats {display:none;}
     .travel-journal[data-view=album] .travel-atlas-actions {margin:0;}
-    .travel-journal[data-view=album] #travelAllCities {min-height:44px;padding:6px 11px;border:1px solid var(--line);border-radius:3px;background:var(--paper);font:12px/1.8 var(--sans);}
-    .travel-journal[data-view=album] #travelAllCities:focus-visible {outline:1px solid var(--accent);outline-offset:3px;}
+    .travel-journal[data-view=album] #travelAllCities {font-size:12px;}
     .travel-journal[data-view=album] .travel-album-cities {order:1;margin:10px 0 0;gap:4px 14px;}
     .travel-journal[data-view=album] .travel-map-tools {bottom:6px;gap:4px;}
-    .travel-journal[data-view=album] .travel-map-tools button {width:32px;height:32px;font-size:18px;}
     .travel-journal[data-view=album] .travel-notebook {border-top:0;padding-top:0;}
     .travel-journal[data-view=album] .travel-atlas-layout {gap:18px;}
 }

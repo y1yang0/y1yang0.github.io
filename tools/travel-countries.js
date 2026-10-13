@@ -4,7 +4,7 @@ const countries = [
   {
     code: 'china', name: '中国', label: 'China', route: '/journal/',
     defaultPlace: '330100', heartPlaces: ['330100', '510600'], mapLevel: 'city',
-    terrain: '/travel/china-relief.png', credit: '', mark: 'china',
+    terrain: null, credit: '', mark: 'china',
     coverageLabel: '城市点亮率', countLabel: '城市', unit: '座城市'
   },
   {

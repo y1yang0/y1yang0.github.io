@@ -343,8 +343,8 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         const pixelScale = screenScale * focusScale;
         const focus = svgNode('g', {id: 'travelProvinceFocus', class: 'travel-province-focus', 'data-province': name});
         const surface = svgNode('g', {class: 'travel-province-surface'});
-        const defs = svgNode('defs');
-        const clip = svgNode('clipPath', {id: 'travelProvinceClip', clipPathUnits: 'userSpaceOnUse'});
+        const terrain = canvas.querySelector('.travel-map-terrain');
+        const clip = terrain ? svgNode('clipPath', {id: 'travelProvinceClip', clipPathUnits: 'userSpaceOnUse'}) : null;
         geometry.forEach(path => {
             const shape = path.cloneNode(true);
             shape.removeAttribute('id');
@@ -352,19 +352,22 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             shape.classList.remove('is-selected');
             shape.querySelector('title')?.remove();
             surface.append(shape);
-            const outline = svgNode('path', {d: path.getAttribute('d')});
-            if (path.hasAttribute('transform')) outline.setAttribute('transform', path.getAttribute('transform'));
-            clip.append(outline);
+            if (clip) {
+                const outline = svgNode('path', {d: path.getAttribute('d')});
+                if (path.hasAttribute('transform')) outline.setAttribute('transform', path.getAttribute('transform'));
+                clip.append(outline);
+            }
         });
-        defs.append(clip);
-        focus.append(defs, surface);
-        const terrain = canvas.querySelector('.travel-map-terrain');
         if (terrain) {
+            const defs = svgNode('defs');
+            defs.append(clip);
+            focus.append(defs);
             const relief = terrain.cloneNode(false);
             relief.removeAttribute('id');
             relief.setAttribute('clip-path', 'url(#travelProvinceClip)');
             surface.append(relief);
         }
+        focus.append(surface);
         canvas.querySelectorAll('.travel-map-province-border[data-province-name]').forEach(path => {
             if (path.dataset.provinceName !== name) return;
             const outline = path.cloneNode(false);
