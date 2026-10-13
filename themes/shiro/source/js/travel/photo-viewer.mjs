@@ -1,4 +1,12 @@
-export function createPhotoViewer({dialog, onChange = () => {}, onClose = () => {}, focusFallback = null}) {
+function defaultFormatFileSize(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const unit = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log2(bytes) / 10)));
+    return `${(bytes / 1024 ** unit).toLocaleString('en', {maximumFractionDigits: unit ? 1 : 0})}${units[unit]}`;
+}
+
+export function createPhotoViewer({dialog, imageLoader = null, formatFileSize = defaultFormatFileSize,
+    onChange = () => {}, onClose = () => {}, focusFallback = null}) {
     const viewer = dialog;
     const viewerImage = viewer.querySelector('#travelViewerImage');
     const viewerCaption = viewer.querySelector('#travelViewerCaption');
@@ -16,43 +24,90 @@ export function createPhotoViewer({dialog, onChange = () => {}, onClose = () => 
     let viewerIndex = 0;
     let viewerTrigger = null;
     let viewerRequest = 0;
+    let viewerDecodeRequest = -1;
     let viewerOriginalSrc = '';
     let viewerLoadSrc = '';
+    let viewerLease = null;
+    let viewerFileMeta = null;
+    let viewerFileSize = null;
+    let viewerLoadProgress = null;
     let photoZoom = 1;
     let photoPan = {x: 0, y: 0};
     const photoTouches = new Map();
     let photoGesture = null;
     let photoTap = null;
-    function formatFileSize(bytes) {
-        if (!Number.isFinite(bytes) || bytes <= 0) return '';
-        const units = ['B', 'KB', 'MB', 'GB'];
-        const unit = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log2(bytes) / 10)));
-        return `${(bytes / 1024 ** unit).toLocaleString('en', {maximumFractionDigits: unit ? 1 : 0})}${units[unit]}`;
+    function updateViewerMeta({sizeBytes, progress} = {}) {
+        if (!viewerFileMeta) return;
+        if (sizeBytes !== undefined) {
+            viewerFileSize.textContent = formatFileSize(sizeBytes);
+            viewerFileSize.hidden = !viewerFileSize.textContent;
+        }
+        if (progress !== undefined) {
+            viewerLoadProgress.textContent = progress;
+            viewerLoadProgress.hidden = !progress;
+        }
+        viewerFileMeta.hidden = viewerFileSize.hidden && viewerLoadProgress.hidden;
+    }
+    function setViewerCaption(photo) {
+        viewerCaption.textContent = text(photo.caption) || photo.alt;
+        const document = viewer.ownerDocument;
+        viewerFileMeta = document.createElement('span');
+        viewerFileMeta.className = 'image-file-meta';
+        viewerFileSize = document.createElement('span');
+        viewerFileSize.className = 'image-file-size';
+        viewerLoadProgress = document.createElement('span');
+        viewerLoadProgress.className = 'image-load-progress';
+        viewerFileMeta.append(viewerFileSize, viewerLoadProgress);
+        viewerCaption.append(viewerFileMeta);
+        updateViewerMeta({sizeBytes: photo.sizeBytes || 0, progress: ''});
     }
     function cancelViewerLoad() {
+        viewerRequest += 1;
         viewerOriginalSrc = '';
         viewerLoadSrc = '';
+        viewerImage.removeAttribute('src');
+        viewerLease?.release();
+        viewerLease = null;
+        updateViewerMeta({progress: ''});
         if (viewerRetry) viewerRetry.hidden = true;
         hidePhotoLens();
         resetPhotoTransform();
-        viewerRequest += 1;
+    }
+    function showViewerError(request) {
+        if (request !== viewerRequest || !viewer.open) return;
+        viewerOriginalSrc = '';
+        viewerLoadSrc = '';
+        hidePhotoLens();
+        viewerImage.hidden = true;
+        viewerImage.removeAttribute('src');
+        viewerLease?.release();
+        viewerLease = null;
+        viewerImage.setAttribute('aria-busy', 'false');
+        viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
+        updateViewerMeta({progress: ''});
+        if (viewerRetry) viewerRetry.hidden = false;
     }
     async function finishViewerLoad(request, src) {
         if (request !== viewerRequest || !viewer.open || viewerImage.currentSrc !== src) return;
-        await viewerImage.decode().catch(() => {});
+        if (viewerDecodeRequest === request) return;
+        viewerDecodeRequest = request;
+        try {
+            await viewerImage.decode();
+        } catch (_) {
+            if (request === viewerRequest && viewerImage.currentSrc === src) showViewerError(request);
+            return;
+        }
         if (request !== viewerRequest || !viewer.open || !viewerImage.complete
             || !viewerImage.naturalWidth || viewerImage.currentSrc !== src) return;
         viewerImage.hidden = false;
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '';
         viewerOriginalSrc = src;
+        updateViewerMeta({progress: ''});
         if (viewerRetry) viewerRetry.hidden = true;
         const photo = gallery[viewerIndex];
         if (photo?.image?.isConnected && (!photo.image.naturalWidth || photo.button.classList.contains('is-unavailable'))) {
-            photo.image.hidden = false;
-            photo.button.classList.remove('is-unavailable');
-            photo.button.querySelector('.travel-photo-error')?.remove();
-            photo.image.src = src;
+            photo.retryLoad?.();
         }
     }
     function viewerPhoto(index, {retry = false} = {}) {
@@ -65,18 +120,47 @@ export function createPhotoViewer({dialog, onChange = () => {}, onClose = () => 
         viewerImage.setAttribute('aria-busy', 'true');
         viewerImage.hidden = true;
         viewerStatus.textContent = '高清原图加载中…';
-        viewerCaption.textContent = text(photo.caption) || photo.alt;
-        const fileSize = formatFileSize(photo.sizeBytes);
-        viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}${fileSize ? `  (${fileSize})` : ''}`;
+        setViewerCaption(photo);
+        viewerCounter.textContent = `${viewerIndex + 1} / ${gallery.length}`;
         viewer.querySelectorAll('[data-prev-photo],[data-next-photo]').forEach(button => { button.disabled = gallery.length < 2; });
-        viewerLoadSrc = photo.src;
-        if (retry) {
-            const retried = new URL(photo.src);
-            retried.searchParams.set('_journal_retry', `${Date.now()}-${request}`);
-            viewerLoadSrc = retried.href;
+        if (imageLoader) {
+            updateViewerMeta({progress: photo.sizeBytes > 0 ? '加载 0%' : '加载中…'});
+            try {
+                viewerLease = imageLoader.load(photo.src, {
+                    sizeBytes: photo.sizeBytes,
+                    retry,
+                    onProgress: ({percent}) => {
+                        if (request !== viewerRequest || !viewer.open) return;
+                        updateViewerMeta({
+                            progress: Number.isFinite(percent) ? `加载 ${Math.max(0, Math.min(100, Math.round(percent)))}%` : '加载中…'
+                        });
+                    }
+                });
+                viewerLease.promise.then(resource => {
+                    if (request !== viewerRequest || !viewer.open) return;
+                    if (resource.sizeBytes > 0) {
+                        photo.sizeBytes = resource.sizeBytes;
+                        updateViewerMeta({sizeBytes: resource.sizeBytes});
+                    }
+                    viewerLoadSrc = resource.src;
+                    viewerImage.src = viewerLoadSrc;
+                    if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, viewerLoadSrc);
+                }).catch(error => {
+                    if (error?.name !== 'AbortError') showViewerError(request);
+                });
+            } catch (_) {
+                showViewerError(request);
+            }
+        } else {
+            viewerLoadSrc = photo.src;
+            if (retry) {
+                const retried = new URL(photo.src, window.location.href);
+                retried.searchParams.set('_journal_retry', `${Date.now()}-${request}`);
+                viewerLoadSrc = retried.href;
+            }
+            viewerImage.src = viewerLoadSrc;
+            if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, viewerLoadSrc);
         }
-        viewerImage.src = viewerLoadSrc;
-        if (viewerImage.complete && viewerImage.naturalWidth) finishViewerLoad(request, viewerLoadSrc);
         onChange(viewerIndex, photo);
     }
     function openViewer(index, trigger, options = {}) {
@@ -105,20 +189,15 @@ export function createPhotoViewer({dialog, onChange = () => {}, onClose = () => 
         if (viewer.open) return;
         cancelViewerLoad();
         (viewerTrigger?.isConnected ? viewerTrigger : focusFallback)?.focus({preventScroll: true});
-        viewerImage.removeAttribute('src');
         viewerImage.setAttribute('aria-busy', 'false');
         viewerStatus.textContent = '';
         onClose();
     });
     viewerImage?.addEventListener('load', () => finishViewerLoad(viewerRequest, viewerLoadSrc));
     viewerImage?.addEventListener('error', () => {
-        if (!viewer.open || !viewerImage.complete || viewerImage.naturalWidth > 0) return;
-        viewerOriginalSrc = '';
-        hidePhotoLens();
-        viewerImage.hidden = true;
-        viewerImage.setAttribute('aria-busy', 'false');
-        viewerStatus.textContent = '照片暂时无法载入，请稍后重试。';
-        if (viewerRetry) viewerRetry.hidden = false;
+        if (!viewer.open || !viewerLoadSrc || viewerImage.getAttribute('src') !== viewerLoadSrc
+            || !viewerImage.complete || viewerImage.naturalWidth > 0) return;
+        showViewerError(viewerRequest);
     });
     function resetPhotoTransform() {
         photoTouches.forEach((_, id) => {

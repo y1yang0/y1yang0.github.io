@@ -22,7 +22,7 @@ function journalStats(places, albums) {
     const weight = place.photos ? 22 + (maximum > 1 ? 58 * Math.log(place.photos) / Math.log(maximum) : 0) : 0;
     place.weight = `${weight.toFixed(2)}%`;
   }
-  return { byPlace, coverage: { visited: Object.values(byPlace).filter(place => place.recorded).length, total: places.length } };
+  return { byPlace };
 }
 
 function compileJournal(markdown, { data, country, onWarning = () => {} }) {

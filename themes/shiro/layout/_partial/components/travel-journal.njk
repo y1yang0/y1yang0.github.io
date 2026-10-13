@@ -1,12 +1,11 @@
 {% from "_partial/components/travel-art.njk" import travel_scene with context %}
-{% set travel_stats = travel_journal_stats(page) %}
 {% set country = travel_country(page) %}
 {% set location_label = '地区' if country.mapLevel == 'province' else '城市' %}
-<div class="travel-journal" id="travelJournal" data-view="atlas" data-country="{{ country.code }}" data-country-name="{{ country.name }}" data-map-level="{{ country.mapLevel }}" data-unit="{{ country.unit }}" data-coverage-label="{{ country.coverageLabel }}" lang="zh-CN">
+<div class="travel-journal" id="travelJournal" data-view="atlas" data-country="{{ country.code }}" data-country-name="{{ country.name }}" data-map-level="{{ country.mapLevel }}" lang="zh-CN">
     <div class="travel-atlas-layout">
         <section class="travel-atlas" aria-label="{{ location_label }}旅行地图">
             <header class="travel-atlas-heading">
-                <div class="travel-atlas-actions"><div class="travel-map-stats"><p class="travel-coverage"><span>{{ country.coverageLabel }}</span><strong id="travelCoverage">{{ travel_stats.coverage }}</strong></p><p class="travel-visited-count"><span>{{ country.countLabel }}</span><strong id="travelPlaceCount">{{ travel_stats.visited }}</strong></p></div><button type="button" id="travelAllCities" aria-label="返回{{ country.name }}全部{{ location_label }}地图" hidden>← 返回地图</button></div>
+                <div class="travel-atlas-actions"><button type="button" id="travelAllCities" aria-label="返回{{ country.name }}全部{{ location_label }}地图" hidden>← 返回地图</button></div>
             </header>
             <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的{{ location_label }}" hidden></nav>
             <div class="travel-map-stage">

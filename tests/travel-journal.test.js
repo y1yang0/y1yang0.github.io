@@ -40,7 +40,7 @@ test('prefecture headings take priority over cities and legacy city albums retai
   assert.deepEqual(Object.keys(result.albums), ['JP-26', 'JP-28']);
   assert.deepEqual(result.albums['JP-26'].entries.map(entry => entry.title), ['清水寺', '平等院']);
   assert.deepEqual(result.albums['JP-26'].entries.flatMap(entry => entry.photos.map(photo => photo.caption)), ['first', 'second']);
-  assert.deepEqual(result.stats.coverage, { visited: 2, total: 2 });
+  assert.deepEqual(Object.keys(result.stats), ['byPlace']);
   assert.equal(result.stats.byPlace['JP-26'].photos, 2);
   assert.equal(result.stats.byPlace['JP-26'].weight, '80.00%');
   assert.equal(result.stats.byPlace['JP-28'].weight, '22.00%');
@@ -53,7 +53,6 @@ test('notes-only entries count as recorded and zero-photo colors remain neutral'
   const result = compileJournal('# 京都府\n## 手记\n下雨了。', { data: sampleMap, country: japan });
   assert.deepEqual(result.stats.byPlace['JP-26'], { recorded: true, photos: 0, weight: '0.00%' });
   assert.deepEqual(result.stats.byPlace['JP-28'], { recorded: false, photos: 0, weight: '0.00%' });
-  assert.deepEqual(result.stats.coverage, { visited: 1, total: 2 });
 });
 
 test('ambiguous cities require an ID and invalid headings never attach photos to the preceding album', () => {

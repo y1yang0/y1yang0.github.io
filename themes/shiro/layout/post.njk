@@ -4,7 +4,7 @@
 {% set article_toc = "" %}
 {% if theme.article.show_toc %}{% set article_toc = toc(page.content, {list_number: false}) %}{% endif %}
 <article class="content-article post-page{% if article_toc %} has-contents{% else %} no-contents{% endif %}">
-    <header class="article-header"><a class="eyebrow back-link" href="{{ url_for('/') }}#writing">← Back to the notebook</a><h1>{{ page.title }}</h1>{{ meta(page) }}</header>
+    <header class="article-header"><h1>{{ page.title }}</h1>{{ meta(page) }}</header>
     <div class="reading-layout">
         <div class="prose-shiro">{{ page.content }}</div>
         {% if article_toc %}<aside class="article-index"><p class="eyebrow">Contents</p><nav aria-label="Table of contents">{{ article_toc }}</nav></aside>{% endif %}

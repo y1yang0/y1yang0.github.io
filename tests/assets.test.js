@@ -18,6 +18,7 @@ test('Journal module edits invalidate the entry URL and remain stable between bu
   const modulesDir = path.join(sourceDir, 'js/travel');
   fs.mkdirSync(modulesDir, { recursive: true });
   fs.writeFileSync(path.join(sourceDir, 'js/travel-journal.js'), '/* entry */');
+  fs.writeFileSync(path.join(sourceDir, 'js/image-loading.mjs'), 'export const loadingVersion = 1;');
   fs.writeFileSync(path.join(modulesDir, 'map.mjs'), 'export const version = 1;');
   fs.writeFileSync(path.join(modulesDir, 'viewer.mjs'), 'export const viewer = true;');
   const helpers = {}, filters = {};
@@ -41,4 +42,8 @@ test('Journal module edits invalidate the entry URL and remain stable between bu
   fs.renameSync(path.join(modulesDir, 'viewer.mjs'), path.join(modulesDir, 'photo-viewer.mjs'));
   filters.before_generate();
   assert.notEqual(url(), changed);
+  const beforeLoader = url();
+  fs.writeFileSync(path.join(sourceDir, 'js/image-loading.mjs'), 'export const loadingVersion = 2;');
+  filters.before_generate();
+  assert.notEqual(url(), beforeLoader);
 });

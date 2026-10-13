@@ -821,6 +821,21 @@ button:disabled {
     line-height:1.6;
 }
 
+.image-file-meta {
+    display:inline-flex;
+    align-items:baseline;
+    gap:6px;
+    margin-inline-start:8px;
+    color:var(--muted);
+    font:11px/1.7 var(--sans);
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+}
+
+.image-file-meta-standalone {margin-inline-start:0;}
+.image-file-meta[hidden],.image-file-meta [hidden] {display:none!important;}
+.image-file-size:not([hidden])+.image-load-progress:not([hidden])::before {content:'·';margin-inline-end:6px;}
+
 .prose-shiro pre,.prose-shiro code {
     font-family:var(--mono);
 }

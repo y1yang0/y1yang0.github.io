@@ -2,12 +2,15 @@ async function initializeJournal() {
     const root = document.getElementById('travelJournal');
     if (!root) return;
     const revision = new URL(import.meta.url).search;
-    const [albumModule, mapModule, viewerModule, navigationModule] = await Promise.all([
+    const [albumModule, mapModule, viewerModule, navigationModule, loadingModule] = await Promise.all([
         import(new URL(`./travel/album.mjs${revision}`, import.meta.url)),
         import(new URL(`./travel/map.mjs${revision}`, import.meta.url)),
         import(new URL(`./travel/photo-viewer.mjs${revision}`, import.meta.url)),
-        import(new URL(`./travel/navigation.mjs${revision}`, import.meta.url))
+        import(new URL(`./travel/navigation.mjs${revision}`, import.meta.url)),
+        import(new URL(`./image-loading.mjs${revision}`, import.meta.url))
     ]);
+    const imageLoader = loadingModule.createImageLoader();
+    window.addEventListener('pagehide', event => { if (!event.persisted) imageLoader.dispose(); });
     const live = root.querySelector('#travelStatus');
     const provinceLevel = root.dataset.mapLevel === 'province';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +26,6 @@ async function initializeJournal() {
     if (!recordsAvailable) live.classList.remove('visually-hidden');
     const albums = recordsAvailable ? journal.albums : {};
     const stats = recordsAvailable ? journal.stats.byPlace : null;
-    const coverage = recordsAvailable ? journal.stats.coverage : null;
     const fallbackPlaces = new Map(Object.entries(albums).map(([id, album]) => [id, {id, name: album.name, province: ''}]));
     const keysByPlace = new Map(Object.entries(albums).map(([id, album]) => [id, new Set(
         album.entries.filter(isObject).flatMap(entry => (Array.isArray(entry.photos) ? entry.photos : []).flatMap(photo => {
@@ -49,11 +51,13 @@ async function initializeJournal() {
     });
     const album = albumModule.createAlbum({
         root, albums, stats: stats || {}, available: recordsAvailable, places: [...fallbackPlaces.values()],
+        imageLoader, formatFileSize: loadingModule.formatFileSize,
         onSelect: (id, options) => navigation.select(id, options),
         onOpenPhoto: (index, trigger, options) => viewer.open(index, trigger, options)
     });
     const viewer = viewerModule.createPhotoViewer({
         dialog: root.querySelector('#travelPhotoViewer'),
+        imageLoader, formatFileSize: loadingModule.formatFileSize,
         focusFallback: album.heading,
         onChange: (_, photo) => navigation.photoChanged(navigationModule.photoKey(photo.src, location.href)),
         onClose: () => navigation.photoClosed()
@@ -118,13 +122,6 @@ async function initializeJournal() {
         if (focus) album.heading.focus({preventScroll: true});
     }
     root.querySelector('#travelAllCities').addEventListener('click', () => navigation.showAtlas({scroll: true, focus: true}));
-    if (coverage && Number.isFinite(coverage.visited) && Number.isFinite(coverage.total)) {
-        const coverageNode = root.querySelector('#travelCoverage');
-        coverageNode.textContent = coverage.total ? `${(coverage.visited / coverage.total * 100).toLocaleString('en', {maximumFractionDigits: 1})}%` : '—';
-        root.querySelector('#travelPlaceCount').textContent = String(coverage.visited);
-        coverageNode.parentElement.title = `${coverage.visited} / ${coverage.total} ${root.dataset.unit || '座城市'}`;
-        coverageNode.parentElement.setAttribute('aria-label', `${root.dataset.coverageLabel || '点亮率'} ${coverageNode.textContent}，${coverageNode.parentElement.title}`);
-    }
     map.initialize();
 }
 

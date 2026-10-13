@@ -57,12 +57,6 @@ hexo.extend.helper.register('travel_journal_payload', function (page = this.page
   return serializeJournal(readJournal(page));
 });
 
-hexo.extend.helper.register('travel_journal_stats', function (page = this.page) {
-  const { visited, total } = readJournal(page).stats.coverage;
-  const coverage = total ? `${(visited / total * 100).toLocaleString('en', { maximumFractionDigits: 1 })}%` : '—';
-  return { visited, total, coverage };
-});
-
 hexo.extend.helper.register('travel_map_viewbox', function () { return readMap(this.page).viewBox.join(' '); });
 
 hexo.extend.helper.register('travel_map_payload', function () {

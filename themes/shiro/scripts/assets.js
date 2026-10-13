@@ -12,6 +12,7 @@ hexo.extend.helper.register('journal_asset', function (asset) {
       files.push(...readdirSync(join(hexo.theme_dir, 'source/js/travel'))
         .filter(name => name.endsWith('.mjs')).sort().map(name => `js/travel/${name}`));
     }
+    if (asset === 'js/travel-journal.js') files.push('js/image-loading.mjs');
     const digest = createHash('sha256');
     for (const file of files) {
       digest.update(file).update('\0').update(readFileSync(join(hexo.theme_dir, 'source', file))).update('\0');

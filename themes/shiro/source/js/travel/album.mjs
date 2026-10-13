@@ -1,4 +1,4 @@
-export function createAlbum({root, albums, stats, available = true, places = [], onSelect, onOpenPhoto}) {
+export function createAlbum({root, albums, stats, available = true, places = [], onSelect, onOpenPhoto, imageLoader, formatFileSize = () => ''}) {
     const albumCities = root.querySelector('#travelAlbumCities');
     const details = root.querySelector('#travelDetails');
     const heading = root.querySelector('#travelCityName');
@@ -54,8 +54,50 @@ export function createAlbum({root, albums, stats, available = true, places = [],
         albumLoadQueue.length = 0;
         albumLoading = 0;
         gallery.forEach(photo => {
-            if (photo.loading) photo.image.removeAttribute('src');
+            photo.loading = false;
+            photo.queued = false;
+            photo.image.removeAttribute('src');
+            photo.image.setAttribute('aria-busy', 'false');
+            photo.request?.release();
+            photo.request = null;
+            updatePhotoMeta(photo);
         });
+    }
+    function updatePhotoMeta(photo, progress = '') {
+        photo.fileSize.textContent = formatFileSize(photo.sizeBytes);
+        photo.fileSize.hidden = !photo.fileSize.textContent;
+        photo.progress.textContent = progress;
+        photo.progress.hidden = !progress;
+        photo.metadata.hidden = photo.fileSize.hidden && photo.progress.hidden;
+    }
+    function photoIsCurrent(photo, token = photo.loadToken) {
+        return photo.loadEpoch === albumLoadEpoch && token === photo.loadToken && photo.image.isConnected;
+    }
+    function failPhotoLoad(photo, token = photo.loadToken) {
+        if (!photoIsCurrent(photo, token)) return;
+        photo.image.removeAttribute('src');
+        photo.request?.release();
+        photo.request = null;
+        photo.image.hidden = true;
+        photo.image.setAttribute('aria-busy', 'false');
+        photo.image.dataset.imageState = 'error';
+        photo.button.classList.add('is-unavailable');
+        if (!photo.button.querySelector('.travel-photo-error')) {
+            photo.button.append(make('span', 'travel-photo-error', '照片暂时无法载入，点击重试'));
+        }
+        updatePhotoMeta(photo);
+        finishAlbumLoad(photo);
+    }
+    function finishPhotoLoad(photo) {
+        if (!photoIsCurrent(photo) || !photo.image.naturalWidth) return;
+        photo.image.style.aspectRatio = photo.button.style.aspectRatio = `${photo.image.naturalWidth} / ${photo.image.naturalHeight}`;
+        photo.image.hidden = false;
+        photo.image.setAttribute('aria-busy', 'false');
+        photo.image.dataset.imageState = 'loaded';
+        photo.button.classList.remove('is-unavailable');
+        photo.button.querySelector('.travel-photo-error')?.remove();
+        updatePhotoMeta(photo);
+        finishAlbumLoad(photo);
     }
     function pumpAlbumLoads() {
         while (albumLoading < 2 && albumLoadQueue.length) {
@@ -64,9 +106,30 @@ export function createAlbum({root, albums, stats, available = true, places = [],
             if (!photo.image.isConnected || photo.image.hasAttribute('src')) continue;
             photo.loading = true;
             photo.loadEpoch = albumLoadEpoch;
+            const token = photo.loadToken = (photo.loadToken || 0) + 1;
             albumLoading += 1;
             photo.image.loading = 'eager';
-            photo.image.src = photo.src;
+            photo.image.setAttribute('aria-busy', 'true');
+            photo.image.dataset.imageState = 'loading';
+            updatePhotoMeta(photo, '加载中…');
+            if (!imageLoader) { photo.image.src = photo.src; continue; }
+            const request = imageLoader.load(photo.src, {
+                sizeBytes: photo.sizeBytes,
+                onProgress: ({percent}) => {
+                    if (!photoIsCurrent(photo, token) || !photo.loading) return;
+                    updatePhotoMeta(photo, Number.isFinite(percent) ? `加载 ${percent}%` : '加载中…');
+                }
+            });
+            photo.request = request;
+            request.promise.then(resource => {
+                if (!photoIsCurrent(photo, token)) return;
+                if (resource.sizeBytes > 0) photo.sizeBytes = resource.sizeBytes;
+                updatePhotoMeta(photo, photo.progress.textContent || '加载中…');
+                photo.image.src = resource.src;
+                if (photo.image.complete && photo.image.naturalWidth) finishPhotoLoad(photo);
+            }).catch(error => {
+                if (error?.name !== 'AbortError') failPhotoLoad(photo, token);
+            });
         }
     }
     function finishAlbumLoad(photo) {
@@ -82,6 +145,16 @@ export function createAlbum({root, albums, stats, available = true, places = [],
         photo.queued = true;
         albumLoadQueue.push(photo);
         pumpAlbumLoads();
+    }
+    function retryPhoto(photo) {
+        if (!photoIsCurrent(photo) || photo.loading || photo.queued) return;
+        photo.image.removeAttribute('src');
+        photo.request?.release();
+        photo.request = null;
+        photo.image.hidden = false;
+        photo.button.classList.remove('is-unavailable');
+        photo.button.querySelector('.travel-photo-error')?.remove();
+        queueAlbumPhoto(photo);
     }
     function renderEntries(city) {
         clearAlbumLoads();
@@ -124,28 +197,28 @@ export function createAlbum({root, albums, stats, available = true, places = [],
                 image.style.aspectRatio = ratio;
                 button.style.aspectRatio = ratio;
                 const index = gallery.length;
-                const item = {...photo, src, alt, image, button};
+                const caption = make('figcaption');
+                if (text(photo.caption)) caption.append(document.createTextNode(photo.caption));
+                const metadata = make('span', 'image-file-meta');
+                if (!text(photo.caption)) metadata.classList.add('image-file-meta-standalone');
+                const fileSize = make('span', 'image-file-size');
+                const progress = make('span', 'image-load-progress');
+                metadata.append(fileSize, progress);
+                caption.append(metadata);
+                const item = {...photo, src, alt, image, button, metadata, fileSize, progress};
+                item.retryLoad = () => retryPhoto(item);
+                updatePhotoMeta(item);
                 gallery.push(item);
                 button.addEventListener('click', () => onOpenPhoto(index, button, {retry: button.classList.contains('is-unavailable')}));
                 image.addEventListener('load', () => {
-                    image.style.aspectRatio = button.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
-                    image.hidden = false;
-                    button.classList.remove('is-unavailable');
-                    button.querySelector('.travel-photo-error')?.remove();
-                    finishAlbumLoad(item);
+                    finishPhotoLoad(item);
                 });
                 image.addEventListener('error', () => {
                     if (!image.complete || image.naturalWidth > 0) return;
-                    finishAlbumLoad(item);
-                    image.hidden = true;
-                    button.classList.add('is-unavailable');
-                    if (!button.querySelector('.travel-photo-error')) {
-                        button.append(make('span', 'travel-photo-error', '照片暂时无法载入，点击重试'));
-                    }
+                    failPhotoLoad(item);
                 });
                 button.append(image);
-                figure.append(button);
-                if (text(photo.caption)) figure.append(make('figcaption', '', photo.caption));
+                figure.append(button, caption);
                 grid.append(figure);
             });
             if (grid.childElementCount) article.append(grid);

@@ -33,6 +33,12 @@ permalink: journal/japan/index.html
 
 ![好像叫杀人蟹](../images/travel/japan/daban-hyg5.jpg)
 
+## 航拍
+
+![可能是四国或者九州？](../images/travel/japan/daban-hangpai1.jpg)
+
+![可能是四国或者九州？](../images/travel/japan/daban-hangpai2.jpg)
+
 # 奈良
 
 ## 奈良公园
@@ -47,7 +53,13 @@ permalink: journal/japan/index.html
 
 ![奈良公园的鹿](../images/travel/japan/nailiang-deer5.jpg)
 
+![奈良公园的鹿](../images/travel/japan/nailiang-deer6.jpg)
+
+![奈良公园的鹿](../images/travel/japan/nailiang-deer7.jpg)
+
 ![若草山俯瞰奈良](../images/travel/japan/nailiang-global.jpg)
+
+![若草山俯瞰奈良](../images/travel/japan/nailiang-global2.jpg)
 
 # 兵库
 
