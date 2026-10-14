@@ -13,6 +13,8 @@ travel_journal: true
 
 ![蛤蟆峰看苏堤，第一次约会的地方](../images/travel/hangzhou-xihu2.jpg)
 
+![西湖松鼠](../images/travel/hangzhou-xihu3.jpg)
+
 ## 京杭大运河
 
 ![西湖文化广场的桥上看京杭大运河，景美故事更美](../images/travel/hangzhou-dayunhe.jpg)
@@ -45,17 +47,17 @@ travel_journal: true
 
 ![盘山公路](../images/travel/hangzhou-wws.jpg)
 
-## 农田随拍
-
-![农田随拍](../images/travel/hangzhou-nongtian.jpg)
-
 ## 青山湖
 
 ![水杉树](../images/travel/hangzhou-qsh.jpg)
 
 ## 都市随拍
 
-![](../images/travel/hangzhou-dushi1.jpg)
+![农田随拍](../images/travel/hangzhou-nongtian.jpg)
+
+![俯瞰杭瑞高速](../images/travel/hangzhou-dushi1.jpg)
+
+![小米SU7美如画](../images/travel/hangzhou-car1.jpg)
 
 ## 宫宴
 
@@ -98,6 +100,8 @@ travel_journal: true
 ## 仙华山
 
 ![最后的登顶道宽度只容一人](../images/travel/jinhua-xhs1.jpg)
+
+![山下的梯田](../images/travel/jinhua-xhs2.jpg)
 
 # 台州
 
