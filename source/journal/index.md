@@ -59,6 +59,14 @@ travel_journal: true
 
 ![小米SU7美如画](../images/travel/hangzhou-car1.jpg)
 
+## 瓶窑老街
+
+![坦白说，老街没什么特色，但是不妨碍拍了一张好看的照片](../images/travel/hangzhou-pylj1.jpg)
+
+## 自然造物
+
+![很多很有特色的手工艺品](../images/travel/hangzhou-zrzw1.jpg)
+
 ## 宫宴
 
 ![吃个饭都这么多花样](../images/travel/hangzhou-gongyan.jpg)
@@ -155,6 +163,10 @@ travel_journal: true
 
 ![迪士尼公主花木兰](../images/travel/shanghai-disney1.jpg)
 
+## 上海世博会展览馆
+
+![](../images/travel/shanghai-sbg1.jpg)
+
 # 黄山
 
 ## 呈坎
@@ -185,6 +197,9 @@ travel_journal: true
 
 ![鲁迅故居的夜](../images/travel/shaoxing-lx2.jpg)
 
+## 羊山石城
+
+![很有特色](../images/travel/shaoxing-yssc1.jpg)
 
 ## 香炉峰
 
