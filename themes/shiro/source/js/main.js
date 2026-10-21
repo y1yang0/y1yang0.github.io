@@ -372,7 +372,7 @@ function initializeArticleTools() {
         if (headings.length && articleBounds.bottom <= window.innerHeight + 1) {
             active = headings[headings.length - 1].id;
         }
-        // Sections already read are struck through, except the ones still open around the current heading.
+        // 标记已读章节，当前章节及其尚未读完的父级章节保持未完成状态。
         const activeIndex = headingIndex.get(active) ?? -1;
         const openSections = new Set();
         let level = activeIndex < 0 ? 0 : Number(headings[activeIndex].tagName[1]);

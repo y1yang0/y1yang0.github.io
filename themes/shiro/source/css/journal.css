@@ -40,7 +40,7 @@
     --pen-soft:rgb(47 53 49 / .13);
     --marker:rgb(255 213 79 / .5);
     --inline-bg:#f1f4f1;
-    --inline-ink:#34456b;
+    --inline-ink:#0b7285;
     --quote-bg:#fafbfa;
     --quote-rule:var(--accent);
     --table-head:#f3f5f3;
@@ -1388,6 +1388,7 @@ button:disabled {
     color:var(--muted);
     display:block;
     overflow-wrap:break-word;
+    transition:color .2s ease,opacity .3s ease;
 }
 
 .toc a:hover,.toc a.toc-active {
@@ -1410,20 +1411,14 @@ button:disabled {
     mask:var(--squiggle-y) center/100% 100% no-repeat;
 }
 
-/* Finished sections are struck through like a reading list. */
-.toc a {
-    transition:opacity .3s ease;
-}
-
-.toc a.toc-read {
-    opacity:.55;
-    text-decoration:line-through;
-    text-decoration-color:var(--accent);
-    text-decoration-thickness:1.5px;
-    text-decoration-skip-ink:none;
+/* 已读章节仅用灰色淡化，当前章节保留强调色游标。 */
+.toc a.toc-read:not(.toc-active) {
+    opacity:.75;
+    text-decoration:none;
 }
 
 .toc a.toc-read:hover,.toc a.toc-read:focus-visible {
+    color:var(--accent);
     opacity:1;
 }
 

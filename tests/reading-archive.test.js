@@ -68,3 +68,68 @@ test('全新 Hexo 实例会自动加载并注册归档所需的 journal_timeline
   assert.equal(typeof timeline, 'function');
   assert.equal(timeline.call(context, [{ date: new Date('2020-12-01') }], 2026).stretches[0].year, 2020);
 });
+
+test('目录已读状态仅用灰色淡化，不带圆点或删除线，当前章节保留强调色游标', () => {
+  const css = fs.readFileSync(path.join(root, 'themes/shiro/source/css/journal.css'), 'utf8');
+  const rule = selector => {
+    const start = css.indexOf(`\n${selector} {`);
+    assert.notEqual(start, -1, `缺少目录样式：${selector}`);
+    return css.slice(start + 1, css.indexOf('}', start) + 1);
+  };
+  const read = rule('.toc a.toc-read:not(.toc-active)');
+  assert.match(read, /opacity:\s*\.75\s*;/);
+  assert.match(read, /text-decoration:\s*none\s*;/);
+  assert.doesNotMatch(css.slice(css.indexOf('.toc {'), css.indexOf('.post-tags {')), /line-through/);
+  assert.match(rule('.toc a'), /color:\s*var\(--muted\)/);
+  assert.doesNotMatch(css, /\.toc a\.toc-read[^{}]*::(?:before|after)\s*\{/);
+  assert.match(rule('.toc a:hover,.toc a.toc-active'), /color:\s*var\(--accent\)/);
+  assert.match(rule('.toc a.toc-active'), /font-weight:\s*600/);
+  assert.match(rule('.toc a.toc-active::before'), /background:\s*var\(--accent\)/);
+  const focused = rule('.toc a.toc-read:hover,.toc a.toc-read:focus-visible');
+  assert.match(focused, /opacity:\s*1\s*;/);
+  assert.match(focused, /color:\s*var\(--accent\)/);
+});
+
+test('侧栏和弹窗目录同步已读状态，保留父级章节并支持向上回读', () => {
+  const main = fs.readFileSync(path.join(root, 'themes/shiro/source/js/main.js'), 'utf8');
+  const start = main.indexOf('    function updateReading() {');
+  assert.notEqual(start, -1);
+  const end = main.indexOf('    if (article) {', start);
+  assert.notEqual(end, -1);
+  const window = { scrollY: 260 };
+  const headings = [
+    { id: 'intro', tagName: 'H2', top: 0 },
+    { id: 'first', tagName: 'H3', top: 120 },
+    { id: 'second', tagName: 'H3', top: 240 },
+    { id: 'end', tagName: 'H2', top: 480 }
+  ].map(heading => ({ ...heading, getBoundingClientRect: () => ({ top: heading.top - window.scrollY }) }));
+  const tocLinks = Array.from({ length: 2 }, () => headings.map(heading => {
+    const classes = new Set();
+    return {
+      target: heading.id, classes, attributes: {},
+      classList: { toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); } },
+      setAttribute(name, value) { this.attributes[name] = value; },
+      removeAttribute(name) { delete this.attributes[name]; }
+    };
+  })).flat();
+  const sandbox = vm.createContext({
+    window, innerHeight: 800, header: null, progress: null, tocIndex: null,
+    article: { getBoundingClientRect: () => ({ top: -window.scrollY, bottom: 2000 - window.scrollY }) },
+    headings, headingIndex: new Map(headings.map((heading, index) => [heading.id, index])),
+    tocLinks, tocTargets: new Map(tocLinks.map(link => [link, link.target])),
+    previousHeading: '', previousIndexHeight: -1
+  });
+  vm.runInContext(main.slice(start, end), sandbox);
+  const check = (scrollY, active, read) => {
+    window.scrollY = scrollY;
+    vm.runInContext('updateReading()', sandbox);
+    for (const link of tocLinks) {
+      assert.equal(link.classes.has('toc-read'), read.includes(link.target), `${link.target} 已读状态`);
+      assert.equal(link.classes.has('toc-active'), link.target === active, `${link.target} 当前状态`);
+      assert.equal(link.attributes['aria-current'], link.target === active ? 'location' : undefined);
+    }
+  };
+  check(260, 'second', ['first']);
+  check(500, 'end', ['intro', 'first', 'second']);
+  check(0, 'intro', []);
+});
