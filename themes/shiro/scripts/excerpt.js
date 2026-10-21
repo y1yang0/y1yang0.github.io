@@ -9,8 +9,8 @@ hexo.extend.helper.register('journal_excerpt', (post, length = 200) => {
     const parts = [];
     let hiddenDepth = 0;
     const parser = new Parser({
-        onopentag(name) {
-            if (hiddenDepth || omitted.has(name)) hiddenDepth++;
+        onopentag(name, attributes) {
+            if (hiddenDepth || omitted.has(name) || /\bsidenote(?:-mark|-ref)?\b/.test(attributes.class || '')) hiddenDepth++;
             else if (blocks.has(name)) parts.push(' ');
         },
         ontext(text) {

@@ -17,3 +17,25 @@
 {% if currentYear != "" %}</div></section>{% endif %}
 </div>
 {% endmacro %}
+
+{# The river runs newest to oldest; dimmed notes keep their place so a topic shows where it sits in time. #}
+{% macro render_river(posts, title, selected='', filterable=true) %}
+{% set timeline = journal_timeline(posts, theme.archive.ai_era, selected) %}
+{% set summary = timeline.total + (' note' if timeline.total == 1 else ' notes') + (' · ' + timeline.first + ' — ' + timeline.last if timeline.first != timeline.last else '') %}
+<section class="archive-page river-page" data-river data-total="{{ timeline.total }}" data-summary="{{ summary }}">
+<header class="section-intro"><div><h1 data-river-title>{{ title }}</h1></div><p data-river-count aria-live="polite">{% if selected %}{{ timeline.matched }} of {{ timeline.total }} notes{% else %}{{ summary }}{% endif %}</p></header>
+{% if filterable %}<nav class="topic-nav river-filter" aria-label="Filter notes by topic"><a href="{{ url_for('archives/') }}" data-topic="" data-title="Archives"{% if not selected %} class="selected" aria-current="page"{% endif %}>All <span>{{ timeline.total }}</span></a>{% for cat in site.categories.sort('name', 1).toArray() %}<a href="{{ url_for(cat.path) }}" data-topic="{{ cat.path }}" data-title="{{ cat.name }}"{% if selected == cat.path %} class="selected" aria-current="page"{% endif %}>{% if cat.parent %}{{ site.categories.findOne({_id: cat.parent}).name }} / {% endif %}{{ cat.name }} <span>{{ cat.posts.length }}</span></a>{% endfor %}</nav>{% endif %}
+<div class="time-river">
+{% for stretch in timeline.stretches %}
+{% if stretch.type == 'year' %}
+<section class="river-year{% if stretch.era %} is-era{% endif %}" id="y{{ stretch.year }}" aria-labelledby="river-{{ stretch.year }}">
+<h2 class="river-year-label" id="river-{{ stretch.year }}"><span>{{ stretch.year }}</span>{% if stretch.eraStart %}<small>AI era</small>{% elif theme.archive.milestones and theme.archive.milestones[stretch.year] %}<small>{{ theme.archive.milestones[stretch.year] }}</small>{% endif %}</h2>
+<ol class="river-entries">{% for entry in stretch.entries %}<li class="river-entry is-{{ entry.side }}{% if not entry.match %} is-muted{% endif %}" data-topics="|{{ entry.topics | join('|') }}|"><i class="river-dot" aria-hidden="true"></i><div class="river-card"><time datetime="{{ date(entry.post.date, 'YYYY-MM-DD') }}">{{ date(entry.post.date, 'MM.DD') }}</time><h3><a href="{{ url_for(entry.post.path) }}">{{ entry.post.title }}</a></h3>{% if entry.names.length %}<p class="river-topics">{{ entry.names | join(' · ') }}</p>{% endif %}</div></li>{% endfor %}</ol>
+</section>
+{% else %}
+<p class="river-gap"><span>{{ stretch.from }}{% if stretch.from != stretch.to %} – {{ stretch.to }}{% endif %} · quiet {{ 'year' if stretch.from == stretch.to else 'years' }}</span></p>
+{% endif %}
+{% endfor %}
+</div>
+</section>
+{% endmacro %}

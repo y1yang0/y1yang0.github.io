@@ -64,6 +64,12 @@ index_generator:
   per_page: 10
   order_by: -date
 
+# The archive and topic pages draw every note on one timeline.
+archive_generator:
+  per_page: 0
+category_generator:
+  per_page: 0
+
 # Category & Tag
 default_category: uncategorized
 category_map:

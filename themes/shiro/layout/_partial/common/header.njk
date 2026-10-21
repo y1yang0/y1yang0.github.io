@@ -14,7 +14,7 @@
                 </svg>
             </button>
             <div class="theme-menu" id="themeMenu" role="menu" aria-label="阅读主题" hidden>
-                {% for value, label in { warm: '暖', dark: '黑', white: '白' } %}
+                {% for value, label in { white: '白', warm: '暖', dark: '黑' } %}
                 <button class="theme-option" type="button" role="menuitemradio" aria-checked="{{ 'true' if value == 'warm' else 'false' }}" data-theme-choice="{{ value }}" tabindex="-1">
                     <span class="theme-swatch theme-swatch-{{ value }}" aria-hidden="true"></span>
                     <span lang="zh-CN">{{ label }}</span>

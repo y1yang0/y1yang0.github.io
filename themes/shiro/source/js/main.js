@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     initializeArchives();
+    initializeRiver();
     initializeArticleTools();
 });
 
@@ -10,7 +11,7 @@ function initializeTheme() {
     const themePicker = document.getElementById('themePicker');
     const themeMenu = document.getElementById('themeMenu');
     const themeOptions = Array.from(document.querySelectorAll('[data-theme-choice]'));
-    const themeNames = { warm: '暖', dark: '黑', white: '白' };
+    const themeNames = { white: '白', warm: '暖', dark: '黑' };
     const validTheme = value => Object.hasOwn(themeNames, value);
     function applyTheme(value) {
         const theme = validTheme(value) ? value : 'warm';
@@ -106,6 +107,45 @@ function initializeArchives() {
     });
 }
 
+// Topic links stay real pages; with scripts they re-ink the same river in place.
+function initializeRiver() {
+    const river = document.querySelector('[data-river]');
+    if (!river) return;
+    const links = [...river.querySelectorAll('.river-filter a[data-topic]')];
+    const marks = [...river.querySelectorAll('.river-entry')];
+    const title = river.querySelector('[data-river-title]');
+    const count = river.querySelector('[data-river-count]');
+    function select(link) {
+        const topic = link.dataset.topic;
+        let matched = 0;
+        marks.forEach(mark => {
+            const match = !topic || mark.dataset.topics.includes(`|${topic}|`);
+            mark.classList.toggle('is-muted', !match);
+            if (match) matched++;
+        });
+        links.forEach(other => {
+            other.classList.toggle('selected', other === link);
+            if (other === link) other.setAttribute('aria-current', 'page');
+            else other.removeAttribute('aria-current');
+        });
+        title.textContent = link.dataset.title;
+        count.textContent = topic ? `${matched} of ${river.dataset.total} notes` : river.dataset.summary;
+    }
+    links.forEach(link => link.addEventListener('click', event => {
+        if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        select(link);
+        history.replaceState(null, '', link.href);
+    }));
+}
+
+const codeLanguages = {
+    asm: 'Assembly', bash: 'Bash', c: 'C', cpp: 'C++', css: 'CSS', diff: 'Diff', go: 'Go', golang: 'Go',
+    html: 'HTML', java: 'Java', javascript: 'JavaScript', js: 'JavaScript', json: 'JSON', python: 'Python',
+    py: 'Python', rust: 'Rust', sh: 'Shell', shell: 'Shell', sql: 'SQL', ts: 'TypeScript', typescript: 'TypeScript',
+    xml: 'XML', yaml: 'YAML', yml: 'YAML'
+};
+
 function initializeArticleTools() {
     if (!document.querySelector('.prose-shiro')) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -191,6 +231,36 @@ function initializeArticleTools() {
         button.title = 'Copy code';
         button.addEventListener('click', () => copyText(getCode(block.querySelector('.code pre') || block.querySelector('pre')), button));
         block.append(button);
+        const language = [...block.classList].find(name => name !== 'highlight')?.toLowerCase();
+        if (language && !['plaintext', 'plain', 'text', 'txt', 'none'].includes(language)) {
+            const label = document.createElement('span');
+            label.className = 'code-lang';
+            label.textContent = codeLanguages[language] || language;
+            block.classList.add('has-lang');
+            block.prepend(label);
+        }
+    });
+
+    // Margin notes sit beside the text on wide pages and unfold under their mark elsewhere.
+    document.querySelectorAll('.sidenote-mark button').forEach(button => {
+        const note = document.getElementById(button.getAttribute('aria-controls'));
+        if (!note) return;
+        const link = on => [button, note].forEach(node => node.classList.toggle('is-linked', on));
+        button.addEventListener('mouseenter', () => link(true));
+        button.addEventListener('mouseleave', () => link(false));
+        button.addEventListener('focus', () => link(true));
+        button.addEventListener('blur', () => link(false));
+        button.addEventListener('click', () => {
+            if (['left', 'right'].includes(getComputedStyle(note).float)) {
+                note.classList.remove('is-flash');
+                void note.offsetWidth;
+                note.classList.add('is-flash');
+                return;
+            }
+            const open = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', String(open));
+            note.classList.toggle('is-open', open);
+        });
     });
     document.querySelectorAll('.prose-shiro table').forEach(table => {
         if (table.closest('.highlight')) return;
@@ -253,7 +323,11 @@ function initializeArticleTools() {
     const header = document.querySelector('.site-header');
     const article = document.querySelector('.post-page .prose-shiro');
     const headings = article ? [...article.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]')] : [];
+    const headingIndex = new Map(headings.map((heading, index) => [heading.id, index]));
     const tocLinks = [...document.querySelectorAll('.toc a')];
+    const tocTargets = new Map(tocLinks.map(link => {
+        try { return [link, decodeURIComponent(link.hash.slice(1))]; } catch (_) { return [link, link.hash.slice(1)]; }
+    }));
     const tocIndex = document.querySelector('.article-index');
     const readingTools = document.querySelector('.reading-tools');
     function alignReadingTools() {
@@ -298,10 +372,22 @@ function initializeArticleTools() {
         if (headings.length && articleBounds.bottom <= window.innerHeight + 1) {
             active = headings[headings.length - 1].id;
         }
+        // Sections already read are struck through, except the ones still open around the current heading.
+        const activeIndex = headingIndex.get(active) ?? -1;
+        const openSections = new Set();
+        let level = activeIndex < 0 ? 0 : Number(headings[activeIndex].tagName[1]);
+        for (let index = activeIndex - 1; index >= 0; index--) {
+            const headingLevel = Number(headings[index].tagName[1]);
+            if (headingLevel < level) {
+                openSections.add(index);
+                level = headingLevel;
+            }
+        }
         tocLinks.forEach(link => {
-            let target;
-            try { target = decodeURIComponent(link.hash.slice(1)); } catch (_) { target = link.hash.slice(1); }
+            const target = tocTargets.get(link);
+            const index = headingIndex.get(target) ?? -1;
             const selected = !!active && target === active;
+            link.classList.toggle('toc-read', index > -1 && index < activeIndex && !openSections.has(index));
             link.classList.toggle('toc-active', selected);
             if (selected) link.setAttribute('aria-current', 'location');
             else link.removeAttribute('aria-current');
@@ -336,6 +422,14 @@ function initializeArticleTools() {
     function extractArticle() {
         if (!article) return '';
         const clone = article.cloneNode(true);
+        const notes = [];
+        clone.querySelectorAll('.sidenote').forEach(note => {
+            const number = note.querySelector('.sidenote-number');
+            notes.push(`[^${number?.textContent || notes.length + 1}]: ${(number ? note.textContent.slice(number.textContent.length) : note.textContent).trim()}`);
+            note.remove();
+        });
+        clone.querySelectorAll('.sidenote-mark,.sidenote-ref').forEach(mark => mark.replaceWith(`[^${mark.textContent.trim()}]`));
+        clone.querySelectorAll('.code-lang').forEach(label => label.remove());
         clone.querySelectorAll('.highlight').forEach(block => {
             const pre = block.querySelector('.code pre') || block.querySelector('pre');
             block.replaceWith(document.createTextNode(`\n\n\`\`\`\n${getCode(pre)}\n\`\`\`\n\n`));
@@ -350,6 +444,7 @@ function initializeArticleTools() {
         });
         clone.querySelectorAll('li').forEach(li => li.prepend(document.createTextNode('\n- ')));
         clone.querySelectorAll('p').forEach(p => {p.prepend('\n');p.append('\n');});
+        if (notes.length) clone.append(`\n\n${notes.join('\n')}\n`);
         return clone.textContent.replace(/\n{3,}/g, '\n\n').trim();
     }
     const copyArticle = document.getElementById('copyArticleBtn');

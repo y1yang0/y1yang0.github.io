@@ -1,10 +1,23 @@
 {% macro lake_line() %}
 <svg class="banner-line-art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 210" width="900" height="210" aria-hidden="true" focusable="false" fill="none" preserveAspectRatio="xMidYMax meet">
+    <defs>
+        <!-- A faint displacement keeps every stroke from looking ruled. -->
+        <filter id="banner-pencil" x="-2%" y="-5%" width="104%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="7"/>
+            <feDisplacementMap in="SourceGraphic" scale="2.6"/>
+        </filter>
+        <pattern id="banner-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+            <path d="M0 0v7" stroke="var(--ink)" stroke-width=".8" opacity=".22"/>
+        </pattern>
+    </defs>
+    <g filter="url(#banner-pencil)">
     <g fill="var(--sage)">
         <path opacity=".52" d="M46 135c47-4 62-37 94-34 29 3 43 24 68 18 39-9 69-59 104-47 29 10 52 61 83 58 33-3 56-42 88-34 29 7 42 29 67 27 36-4 56-51 92-43 34 8 46 49 88 51 32 1 61-32 95-21 21 7 39 26 65 28v26H46Z"/>
         <path opacity=".8" d="M26 147c42-8 75-20 103-17 35 4 59 20 98 14 48-8 72-35 113-29 33 5 58 34 91 31 50-4 64-24 98-18 44 8 60 18 102 14 50-5 72-29 104-21 33 9 52 25 78 23 29-2 43-6 67 4v19H26Z"/>
     </g>
+    <path fill="url(#banner-hatch)" d="M26 147c42-8 75-20 103-17 35 4 59 20 98 14 48-8 72-35 113-29 33 5 58 34 91 31 50-4 64-24 98-18 44 8 60 18 102 14 50-5 72-29 104-21 33 9 52 25 78 23 29-2 43-6 67 4v19H26Z"/>
     <circle cx="647" cy="73" r="15" fill="var(--accent)" opacity=".78"/>
+    <path d="M630 70c1-12 11-19 22-17 11 2 17 12 15 23-2 11-13 17-24 14-8-2-13-8-14-15" stroke="var(--accent)" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
     <g stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
         <path opacity=".25" d="M68 139c27-7 46-33 72-31 21 1 35 15 54 13m74-22c18-13 31-23 44-20 23 5 37 39 58 48m229-25c15-12 28-23 42-17 16 6 30 27 46 39"/>
         <path opacity=".35" d="M35 157c79-9 145-4 219-2m100 3c51 1 94-6 145-4m164 4c67-5 125-3 199 2"/>
@@ -40,5 +53,6 @@
     </g>
     <path d="m422 76 5-2 5 2m24 12 4-2 4 2" stroke="var(--ink)" stroke-width="1.1" stroke-linecap="round" opacity=".28"/>
     <path d="M16 205h868" stroke="var(--line)" stroke-width="1" opacity=".5"/>
+    </g>
 </svg>
 {% endmacro %}

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ config.language }}">
+<html lang="{{ config.language }}" data-theme="warm">
 {% set has_gallery_images = not page.travel_journal and (is_post() or is_page()) and ('<img' in (page.content | default('') | lower)) %}
 {% include "_partial/common/head.njk" %}
 <body class="journal-site{% if is_home() %} home-page{% endif %}">

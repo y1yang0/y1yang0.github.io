@@ -3,11 +3,13 @@
 {% block content %}
 {% set article_toc = "" %}
 {% if theme.article.show_toc %}{% set article_toc = toc(page.content, {list_number: false}) %}{% endif %}
-<article class="content-article post-page{% if article_toc %} has-contents{% else %} no-contents{% endif %}">
+{# Margin notes take the side column; the contents then live behind the floating button. #}
+{% set has_sidenotes = 'class="sidenote"' in page.content %}
+<article class="content-article post-page{% if article_toc or has_sidenotes %} has-contents{% else %} no-contents{% endif %}{% if has_sidenotes %} has-sidenotes{% endif %}">
     <header class="article-header"><h1>{{ page.title }}</h1>{{ meta(page) }}</header>
     <div class="reading-layout">
         <div class="prose-shiro">{{ page.content }}</div>
-        {% if article_toc %}<aside class="article-index"><p class="eyebrow">Contents</p><nav aria-label="Table of contents">{{ article_toc }}</nav></aside>{% endif %}
+        {% if article_toc and not has_sidenotes %}<aside class="article-index"><p class="eyebrow">Contents</p><nav aria-label="Table of contents">{{ article_toc }}</nav></aside>{% endif %}
     </div>
     {% if page.tags.length %}<div class="post-tags">{% for tag in page.tags.toArray() %}{{ render_tag(tag) }}{% endfor %}</div>{% endif %}
     {% if page.prev or page.next %}<nav class="post-navigation" aria-label="Adjacent notes">{% if page.prev %}<a class="post-newer" href="{{ url_for(page.prev.path) }}"><span>← Newer note</span><strong>{{ page.prev.title }}</strong></a>{% endif %}{% if page.next %}<a class="post-older" href="{{ url_for(page.next.path) }}"><span>Older note →</span><strong>{{ page.next.title }}</strong></a>{% endif %}</nav>{% endif %}

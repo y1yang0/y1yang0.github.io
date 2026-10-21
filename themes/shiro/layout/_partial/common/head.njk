@@ -7,7 +7,7 @@
             let theme = 'warm';
             try {
                 const saved = localStorage.getItem('shiro-theme');
-                theme = ['warm', 'dark', 'white'].includes(saved) ? saved : localStorage.getItem('shiro-dark-mode') === '1' ? 'dark' : 'warm';
+                theme = ['white', 'warm', 'dark'].includes(saved) ? saved : localStorage.getItem('shiro-dark-mode') === '1' ? 'dark' : 'warm';
             } catch (_) {}
             document.documentElement.dataset.theme = theme;
             document.documentElement.classList.toggle('dark', theme === 'dark');

@@ -11,6 +11,14 @@ article:
   # Whether to display the TOC button in the post page
   show_toc: true
 
+archive:
+  # First year drawn as the AI era on the archive timeline
+  # Years annotated beside their label on the archive timeline
+  milestones:
+    2026: AI era
+    2025: Novel
+    2020: COVID pandemic
+
 # Analytics
 analytics:
   # Only support Google Analytics 4

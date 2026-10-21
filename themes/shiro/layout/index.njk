@@ -14,9 +14,6 @@
 {% endif %}
 <section id="writing" class="writing-section" aria-label="Blog posts">
     {% if page.current > 1 %}<h1 class="visually-hidden">Blog posts — page {{ page.current }}</h1>{% endif %}
-    {% if site.categories.length %}
-    <nav class="topic-nav" aria-label="Browse writing by topic"><a class="selected" href="{{ url_for('/') }}#writing" aria-current="page">All notes <span>{{ site.posts.length }}</span></a>{% for cat in site.categories.sort('name', 1).toArray() %}{% if not cat.parent %}<a href="{{ url_for(cat.path) }}">{{ cat.name }} <span>{{ cat.posts.length }}</span></a>{% endif %}{% endfor %}</nav>
-    {% endif %}
     <div class="post-list">
     {% if page.posts.length %}
     {% for post in page.posts.toArray() %}{% include "_partial/components/post-card.njk" %}{% endfor %}
