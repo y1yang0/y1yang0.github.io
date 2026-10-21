@@ -862,8 +862,9 @@ button:disabled {
 
 .prose-shiro blockquote {
     position:relative;
+    display:flow-root;
     margin:24px 0;
-    padding:18px 23px 18px 30px;
+    padding:0 23px 0 30px;
     background:var(--quote-bg);
     border-radius:var(--sketch-radius-md);
     color:var(--ink);
@@ -874,8 +875,8 @@ button:disabled {
     content:'';
     position:absolute;
     left:8px;
-    top:12px;
-    bottom:12px;
+    top:4px;
+    bottom:4px;
     width:9px;
     background:var(--quote-rule);
     -webkit-mask:var(--squiggle-y) center/100% 100% no-repeat;
@@ -888,6 +889,15 @@ button:disabled {
 
 .prose-shiro blockquote p+p {
     margin-top:12px;
+}
+
+/* 引用首尾不叠加标题、列表或代码块的外边距。 */
+.prose-shiro blockquote>:first-child {
+    margin-top:0;
+}
+
+.prose-shiro blockquote>:last-child {
+    margin-bottom:0;
 }
 
 .prose-shiro img {
@@ -1053,6 +1063,11 @@ button:disabled {
     white-space:pre;
     background:none;
     color:inherit;
+}
+
+/* 高亮器在每行后追加 br，只隐藏代码与行号末尾的额外换行。 */
+.prose-shiro .highlight pre>br:last-child,.prose-shiro .highlight pre>code>br:last-child {
+    display:none;
 }
 
 .prose-shiro .highlight .gutter {
@@ -2160,7 +2175,7 @@ html.dark .toc-dialog::backdrop {
         font-size:22px;
     }
     .prose-shiro blockquote {
-        padding:15px 18px 15px 27px;
+        padding:0 18px 0 27px;
         font-size:16px;
     }
     .prose-shiro .highlight pre {

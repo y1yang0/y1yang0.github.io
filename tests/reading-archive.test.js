@@ -6,6 +6,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const Hexo = require('hexo');
+const { highlight } = require('hexo-util');
+const { parseDocument, DomUtils } = require('htmlparser2');
 
 const root = path.resolve(__dirname, '..');
 const context = { date: value => String(value.getUTCFullYear()) };
@@ -132,4 +134,41 @@ test('侧栏和弹窗目录同步已读状态，保留父级章节并支持向�
   check(260, 'second', ['first']);
   check(500, 'end', ['intro', 'first', 'second']);
   check(0, 'intro', []);
+});
+
+test('引用块在桌面和手机上无上下内边距，并清除首尾元素外边距', () => {
+  const css = fs.readFileSync(path.join(root, 'themes/shiro/source/css/journal.css'), 'utf8');
+  const quotes = [...css.matchAll(/(?:^|\n)[ \t]*\.prose-shiro blockquote \{([^}]+)\}/g)];
+  assert.equal(quotes.length, 2);
+  for (const [, declarations] of quotes) {
+    assert.match(declarations, /padding:\s*0\s+\d+px\s+0\s+\d+px\s*;/);
+  }
+  assert.match(quotes[0][1], /display:\s*flow-root\s*;/);
+  assert.match(css, /\.prose-shiro blockquote>:first-child\s*\{\s*margin-top:0;\s*\}/);
+  assert.match(css, /\.prose-shiro blockquote>:last-child\s*\{\s*margin-bottom:0;\s*\}/);
+  assert.match(css, /\.prose-shiro blockquote p\+p\s*\{\s*margin-top:12px;\s*\}/);
+});
+
+test('只隐藏高亮器末尾换行，行号同步且保留代码内部及作者显式空行', () => {
+  const css = fs.readFileSync(path.join(root, 'themes/shiro/source/css/journal.css'), 'utf8');
+  assert.match(css, /\.prose-shiro \.highlight pre>br:last-child,\.prose-shiro \.highlight pre>code>br:last-child\s*\{\s*display:none;\s*\}/);
+  const samples = ['console.log("<tag>");', '// 注释\n\nconsole.log("<tag>");', 'const n = 1;\n'];
+  for (const hljs of [true, false]) {
+    for (const gutter of [true, false]) {
+      for (const code of samples) {
+        const document = parseDocument(highlight(code, { lang: 'javascript', wrap: true, hljs, gutter }));
+        const cells = DomUtils.findAll(node => node.type === 'tag' && node.name === 'td', document.children);
+        assert.equal(cells.length, gutter ? 2 : 1);
+        for (const cell of cells) {
+          const pre = cell.children.find(node => node.name === 'pre');
+          const content = pre.children.find(node => node.name === 'code') || pre;
+          assert.equal(content.children.at(-1).name, 'br');
+          const visible = DomUtils.getText(content.children.slice(0, -1));
+          const expected = cell.attribs.class === 'code' ? code : code.split('\n').map((_, index) => index + 1).join('\n');
+          assert.equal(visible, expected);
+          assert.equal(DomUtils.getText(content), `${expected}\n`);
+        }
+      }
+    }
+  }
 });
