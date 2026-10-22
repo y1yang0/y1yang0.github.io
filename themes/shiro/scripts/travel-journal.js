@@ -97,6 +97,17 @@ hexo.extend.helper.register('travel_map_markup', function () {
   });
   const cityTitle = city => element('title', {}, escapeHTML(`${country.mapLevel === 'province' ? city.province : city.name}${recorded(city) ? ` · ${photoCount(city)} 张照片` : ''}`));
   const border = (d, className, attributes = {}) => element('path', { d, class: className, 'pointer-events': 'none', ...attributes });
+  // 纹理独立叠加，保留底色权重，且不参与地图命中与城市路径查找。
+  const hatching = (cities, pathKey = 'path') => element('g', {
+    class: 'travel-map-hatching', 'pointer-events': 'none', 'aria-hidden': 'true'
+  }, cities.filter(city => photoCount(city) > 0).map(city => element('path', {
+    d: city[pathKey], class: 'travel-map-hatch', 'data-hatch-city-id': city.id
+  })).join(''));
+  const sketchDefs = element('defs', {}, element('pattern', {
+    id: 'travelMapHatching', patternUnits: 'userSpaceOnUse', width: 7, height: 7
+  }, element('path', {
+    d: 'M-1 2 2-1M0 7 7 0M5 8 8 5', class: 'travel-map-hatch-stroke'
+  })));
   let markup = element('g', { class: 'travel-map-cities' }, places.map(city =>
     element('path', { d: city.path, ...cityAttributes(city) }, cityTitle(city))
   ).join(''));
@@ -110,11 +121,15 @@ hexo.extend.helper.register('travel_map_markup', function () {
     preserveAspectRatio: 'none', class: 'travel-map-terrain',
     'clip-path': 'url(#travelTerrainClip)', 'pointer-events': 'none'
   });
+  markup += hatching(places);
   for (const province of data.provinces || []) {
     if (province.path) markup += border(province.path, 'travel-map-province-border', { 'data-province-name': province.name });
   }
   if (typeof data.provinceBorders === 'string') markup += border(data.provinceBorders, 'travel-map-province-border');
   if (data.outlinePath) markup += element('use', {
+    href: '#travelTerrainOutline', class: 'travel-map-outline travel-map-outline--echo',
+    transform: 'translate(.65 .4)', 'pointer-events': 'none'
+  }) + element('use', {
     href: '#travelTerrainOutline', class: 'travel-map-outline', 'pointer-events': 'none'
   });
   if (data.inset?.path && Array.isArray(data.inset.placement)) {
@@ -124,10 +139,13 @@ hexo.extend.helper.register('travel_map_markup', function () {
       x: 0, y: 0, width: inset.viewBox[2], height: inset.viewBox[3],
       class: 'travel-map-inset-frame', fill: 'none', 'pointer-events': 'none'
     });
-    contents += border(inset.path, 'travel-map-outline');
-    for (const city of places.filter(city => city.insetPath)) {
+    const insetCities = places.filter(city => city.insetPath);
+    for (const city of insetCities) {
       contents += element('path', { d: city.insetPath, ...cityAttributes(city) }, cityTitle(city));
     }
+    contents += hatching(insetCities, 'insetPath');
+    contents += border(inset.path, 'travel-map-outline travel-map-outline--echo', { transform: 'translate(.65 .4)' })
+      + border(inset.path, 'travel-map-outline');
     if (inset.dashedPath) contents += border(inset.dashedPath, 'travel-map-island-dashes');
     contents += element('text', {
       x: 8, y: inset.viewBox[3] - 5, class: 'travel-map-inset-label', 'pointer-events': 'none'
@@ -137,6 +155,12 @@ hexo.extend.helper.register('travel_map_markup', function () {
   const heart = element('defs', {}, element('path', {
     id: 'travelMapHeart',
     d: 'M0 3.2C-1 2.3-3.6 .7-3.6-1.3C-3.6-3.5-1.3-4.1 0-2.5C1.3-4.1 3.6-3.5 3.6-1.3C3.6 .7 1 2.3 0 3.2Z'
+  }) + element('path', {
+    id: 'travelMapInkDot',
+    d: 'M-3 .2C-3.4-1.8-1.7-3.2 .3-3 2.4-3.1 3.3-1.4 3 .5 2.8 2.6 1 3.1-.9 2.8-2.5 2.7-3.1 1.6-3 .2Z'
+  }) + element('path', {
+    id: 'travelMapSelectionRing',
+    d: 'M7.3-1.5C8.4 3.1 4.9 7.6-.2 7.4-5.1 7.8-8 4.2-7.5-.4-7.2-5.2-3.7-8 .8-7.5 4.4-7.2 6.8-5.3 7.3-1.5ZM-6.7-3.1C-4.8-6.8-1.1-8.2 2.8-7.2 6.2-6.2 8-3.6 8.1-.2'
   }));
   const pins = country.heartPlaces.map(id => {
     const city = places.find(city => String(city.id) === id);
@@ -147,7 +171,7 @@ hexo.extend.helper.register('travel_map_markup', function () {
       class: 'travel-map-heart'
     }));
   }).join('');
-  return heart + outlineDefs + markup
+  return heart + sketchDefs + outlineDefs + markup
     + element('g', { class: 'travel-map-province-labels', 'pointer-events': 'none' })
     + element('g', { class: 'travel-map-markers' }, pins);
 });

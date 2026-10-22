@@ -32,6 +32,14 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, String(value)));
         return node;
     };
+    const hatchShape = path => {
+        const shape = svgNode('path', {
+            d: path.getAttribute('d'), class: 'travel-map-hatch',
+            'data-hatch-city-id': path.dataset.cityId, 'pointer-events': 'none'
+        });
+        if (path.hasAttribute('transform')) shape.setAttribute('transform', path.getAttribute('transform'));
+        return shape;
+    };
     const authoredBox = svg.viewBox.baseVal;
     let initialBox = [authoredBox.x, authoredBox.y, authoredBox.width, authoredBox.height];
     let view = [...initialBox];
@@ -57,24 +65,35 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         if (!markers) return;
         const matrix = svg.getScreenCTM();
         const scale = matrix ? Math.max(.01, Math.hypot(matrix.a, matrix.b)) : 1;
+        // 重描轮廓的错位保持屏幕像素大小，不随地图放大而拉开。
+        canvas.querySelectorAll('.travel-map-outline--echo').forEach(outline => {
+            const outlineMatrix = outline.getScreenCTM();
+            const outlineScale = outlineMatrix ? Math.max(.01, Math.hypot(outlineMatrix.a, outlineMatrix.b)) : scale;
+            outline.setAttribute('transform', `translate(${.65 / outlineScale} ${.4 / outlineScale})`);
+        });
+        const pattern = canvas.querySelector('#travelMapHatching');
+        if (pattern) pattern.setAttribute('patternTransform', `scale(${1 / scale})`);
         markers.replaceChildren();
-        if (provinceLevel) { renderProvinceLabels(scale); return; }
         const selected = mode === 'album' ? placeById.get(selectedId) : null;
-        const markerIds = new Set(heartPlaceIds);
+        const markerIds = new Set(provinceLevel ? [] : heartPlaceIds);
         const visible = [...markerIds].map(id => placeById.get(id)).filter(Boolean);
         if (selected && !heartPlaceIds.has(selected.id)) visible.push(selected);
         visible.forEach(city => {
             if (!Array.isArray(city.center)) return;
             const [cx, cy] = city.center;
-            const group = svgNode('g', {'data-city-id': city.id, 'class': 'travel-map-pin'});
-            if (heartPlaceIds.has(city.id)) {
-                group.append(svgNode('use', {href: '#travelMapHeart', transform: `translate(${cx} ${cy}) scale(${1 / scale})`, 'class': 'travel-map-heart'}));
-            } else {
-                group.append(svgNode('circle', {cx, cy, r: (selected ? 5 : 3) / scale, 'class': 'travel-map-marker'}));
-            }
-            if (selected?.id === city.id) {
+            const isSelected = selected?.id === city.id;
+            const group = svgNode('g', {'data-city-id': city.id, 'class': `travel-map-pin${isSelected ? ' is-selected' : ''}`});
+            const transform = `translate(${cx} ${cy}) scale(${1 / scale})`;
+            if (isSelected) group.append(svgNode('use', {
+                href: '#travelMapSelectionRing', transform, class: 'travel-map-selection-ring'
+            }));
+            group.append(svgNode('use', {
+                href: heartPlaceIds.has(city.id) ? '#travelMapHeart' : '#travelMapInkDot', transform,
+                class: heartPlaceIds.has(city.id) ? 'travel-map-heart' : 'travel-map-marker'
+            }));
+            if (isSelected && !provinceLevel) {
                 const alignLeft = cx > view[0] + view[2] * .8;
-                const label = svgNode('text', {x: cx + (alignLeft ? -10 : 10) / scale, y: cy + 4 / scale, 'class': 'travel-map-label', 'text-anchor': alignLeft ? 'end' : 'start'});
+                const label = svgNode('text', {x: cx + (alignLeft ? -13 : 13) / scale, y: cy + 4 / scale, 'class': `travel-map-label${hasRecord(city.id) ? ' is-recorded' : ''}`, 'text-anchor': alignLeft ? 'end' : 'start'});
                 label.style.fontSize = `${13 / scale}px`;
                 label.style.strokeWidth = `${3 / scale}px`;
                 label.textContent = shortName(city.name);
@@ -109,7 +128,8 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         const cityNames = new Set([...markers.querySelectorAll('.travel-map-label')].map(label => label.textContent));
         markers.querySelectorAll('.travel-map-pin').forEach(pin => {
             const center = placeById.get(pin.dataset.cityId)?.center;
-            if (center) occupied.push([center[0] - 5 / scale, center[1] - 5 / scale, center[0] + 5 / scale, center[1] + 5 / scale]);
+            const radius = pin.classList.contains('is-selected') ? 9 : 5;
+            if (center) occupied.push([center[0] - radius / scale, center[1] - radius / scale, center[0] + radius / scale, center[1] + radius / scale]);
         });
         const fits = box => box[0] >= frame[0] && box[1] >= frame[1] && box[2] <= frame[2] && box[3] <= frame[3];
         const padding = 4 / scale;
@@ -122,6 +142,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         const area = province => province.bounds ? (province.bounds[2] - province.bounds[0]) * (province.bounds[3] - province.bounds[1]) : Infinity;
         const ordered = [...provinces].sort((a, b) => Number(b.name === selected?.province) - Number(a.name === selected?.province)
             || (national ? area(a) - area(b) : 0));
+        const recordedProvinces = new Set(places.filter(city => hasRecord(city.id)).map(city => city.province));
         const compactJapan = country === 'japan' && national && scale < .45;
         const overviewNames = compactJapan ? new Set(['北海道', '东京都', '京都府', '大阪府', '福冈县', '冲绳县',
             ...places.filter(city => hasRecord(city.id)).map(city => city.province)]) : null;
@@ -131,7 +152,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             if (cityNames.has(name)) return;
             const bounds = province.bounds;
             if (bounds && (bounds[2] < view[0] || bounds[0] > view[0] + view[2] || bounds[3] < view[1] || bounds[1] > view[1] + view[3])) return;
-            const label = svgNode('text', {'class': 'travel-map-province-label', 'text-anchor': 'middle', 'dominant-baseline': 'central'});
+            const label = svgNode('text', {'class': `travel-map-province-label${provinceLevel && recordedProvinces.has(province.name) ? ' is-recorded' : ''}`, 'text-anchor': 'middle', 'dominant-baseline': 'central'});
             label.textContent = name;
             label.style.fontSize = `${fontSize / scale}px`;
             label.style.strokeWidth = `${2.5 / scale}px`;
@@ -343,6 +364,12 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         const pixelScale = screenScale * focusScale;
         const focus = svgNode('g', {id: 'travelProvinceFocus', class: 'travel-province-focus', 'data-province': name});
         const surface = svgNode('g', {class: 'travel-province-surface'});
+        // 用不参与交互的轮廓纸片投影替代模糊滤镜，偏移固定为 3×4 屏幕像素。
+        const shadow = svgNode('g', {
+            class: 'travel-province-shadow', transform: `translate(${3 / pixelScale} ${4 / pixelScale})`,
+            'pointer-events': 'none', 'aria-hidden': 'true'
+        });
+        const hatching = svgNode('g', {class: 'travel-map-hatching', 'pointer-events': 'none', 'aria-hidden': 'true'});
         const terrain = canvas.querySelector('.travel-map-terrain');
         const clip = terrain ? svgNode('clipPath', {id: 'travelProvinceClip', clipPathUnits: 'userSpaceOnUse'}) : null;
         geometry.forEach(path => {
@@ -352,6 +379,10 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             shape.classList.remove('is-selected');
             shape.querySelector('title')?.remove();
             surface.append(shape);
+            const silhouette = svgNode('path', {d: path.getAttribute('d')});
+            if (path.hasAttribute('transform')) silhouette.setAttribute('transform', path.getAttribute('transform'));
+            shadow.append(silhouette);
+            if (photoCount(path.dataset.cityId) > 0) hatching.append(hatchShape(path));
             if (clip) {
                 const outline = svgNode('path', {d: path.getAttribute('d')});
                 if (path.hasAttribute('transform')) outline.setAttribute('transform', path.getAttribute('transform'));
@@ -367,7 +398,8 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             relief.setAttribute('clip-path', 'url(#travelProvinceClip)');
             surface.append(relief);
         }
-        focus.append(surface);
+        surface.append(hatching);
+        focus.append(shadow, surface);
         canvas.querySelectorAll('.travel-map-province-border[data-province-name]').forEach(path => {
             if (path.dataset.provinceName !== name) return;
             const outline = path.cloneNode(false);
@@ -380,7 +412,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         provinceFocus = focus;
         hoverProvinceName = name;
         root.dataset.hoverProvince = name;
-        const extent = [...bounds];
+        const extent = [bounds[0], bounds[1], bounds[2] + 3 / pixelScale, bounds[3] + 4 / pixelScale];
         const include = box => {
             extent[0] = Math.min(extent[0], box[0]);
             extent[1] = Math.min(extent[1], box[1]);
@@ -585,6 +617,12 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
                 const city = placeById.get(id);
                 if (title && city) title.textContent = mapDescription(city);
             }));
+            // 与有效相册统计同步纹理；零照片的纯文字记录保持中性底色。
+            canvas.querySelectorAll('.travel-map-hatching').forEach(group => {
+                const textured = [...group.parentElement.querySelectorAll('path[data-city-id]')]
+                    .filter(path => path.ownerSVGElement === group.ownerSVGElement && photoCount(path.dataset.cityId) > 0);
+                group.replaceChildren(...textured.map(hatchShape));
+            });
             markers = canvas.querySelector('.travel-map-markers');
             if (!markers) throw new Error('Missing map markers');
             provinceLabels = canvas.querySelector('.travel-map-province-labels');

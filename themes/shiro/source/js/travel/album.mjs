@@ -197,6 +197,8 @@ export function createAlbum({root, albums, stats, available = true, places = [],
                 image.style.aspectRatio = ratio;
                 button.style.aspectRatio = ratio;
                 const index = gallery.length;
+                // 跨记录沿用相册序号，重新打开相册时倾斜方向仍然一致。
+                figure.dataset.photoTilt = index % 2 ? 'right' : 'left';
                 const caption = make('figcaption');
                 if (text(photo.caption)) caption.append(document.createTextNode(photo.caption));
                 const metadata = make('span', 'image-file-meta');

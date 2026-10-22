@@ -72,7 +72,8 @@
     --tools-bottom:20px;
     --tools-right:max(24px,calc((100vw - 1112px)/2));
     --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
-    --hand:'Noteworthy','Segoe Print','Ink Free','Kaiti SC','STKaiti','KaiTi','BiauKai','Journal Serif',serif;
+    /* 手机没有系统楷体，落到本地托管的 Journal Hand（hand-font.css）而不是宋体。 */
+    --hand:'Noteworthy','Segoe Print','Ink Free','Kaiti SC','STKaiti','KaiTi','BiauKai','Journal Hand','Journal Serif',serif;
     --serif:var(--hand);
     --display:var(--hand);
     --mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;

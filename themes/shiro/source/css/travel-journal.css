@@ -4,7 +4,8 @@
 .travel-country-tabs h1 {display:flex;align-items:center;gap:14px;}
 .travel-country-tabs a {display:inline-flex;align-items:center;gap:9px;color:var(--muted);text-decoration:none;letter-spacing:.5px;transition:color .16s;}
 .travel-country-tabs a[aria-current=page] {color:var(--ink);}
-.travel-country-tabs a[aria-current=page]>span {text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:1px;text-underline-offset:8px;}
+.travel-country-tabs a>span {position:relative;}
+.travel-country-tabs a[aria-current=page]>span::after {content:'';position:absolute;left:-2px;right:-2px;bottom:-8px;height:6px;background:var(--accent);-webkit-mask:var(--squiggle) center/100% 100% no-repeat;mask:var(--squiggle) center/100% 100% no-repeat;pointer-events:none;}
 .travel-country-mark {display:block;flex:none;width:42px;height:42px;}
 .travel-country-tabs a:hover {color:var(--accent);}
 .travel-country-tabs a:focus-visible {outline:1px solid var(--accent);outline-offset:5px;}
@@ -46,12 +47,13 @@
 .travel-map-canvas {isolation:isolate;transition:opacity .16s;}
 .travel-journal[data-hover-province] .travel-map-canvas {opacity:.58;}
 .travel-province-focus {isolation:isolate;animation:travel-province-reveal .16s ease-out;}
-.travel-province-surface {filter:drop-shadow(0 9px 9px rgb(24 35 28 / .24));}
+/* 省份浮层的阴影由独立 SVG 轮廓绘制，不使用模糊滤镜。 */
+.travel-province-shadow {fill:var(--pen-soft);stroke:none;pointer-events:none;}
 .travel-province-focus .travel-province-city {stroke:color-mix(in srgb,var(--muted) 50%,var(--line));stroke-width:.7;}
 .travel-province-city:not(.is-recorded) {fill:color-mix(in srgb,var(--sage) 80%,var(--paper));}
 .travel-province-focus .travel-province-city:hover {stroke:var(--accent);stroke-width:1.2;}
 .travel-province-city-label {fill:var(--ink);font:12px var(--sans);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round;cursor:pointer;}
-.travel-province-city-label.is-recorded {fill:var(--accent);font-weight:500;}
+.travel-province-city-label.is-recorded {fill:var(--accent);font-family:var(--hand);font-weight:600;}
 .travel-province-city-label:hover {fill:var(--accent);}
 .travel-province-title {fill:var(--ink);font:400 18px var(--display);paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round;pointer-events:none;}
 .travel-province-focus .travel-province-outline {fill:none;stroke:var(--accent);stroke-width:1.1;opacity:1;vector-effect:non-scaling-stroke;pointer-events:none;}
@@ -62,20 +64,29 @@ html.dark .travel-map-terrain {opacity:.3;}
 .travel-map-city {fill:color-mix(in srgb,var(--sage) 60%,var(--paper));stroke:color-mix(in srgb,var(--muted) 32%,var(--line));stroke-width:.55;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .16s;}
 .travel-map-city:hover,.travel-map-city:focus {fill:color-mix(in srgb,var(--accent) 15%,var(--sage));}
 .travel-map-city.is-recorded {fill:color-mix(in srgb,var(--accent) var(--travel-photo-weight,22%),var(--sage));}
+/* 淡排线叠在数量配色上方，地形层和城市命中区域保持独立。 */
+.travel-map-hatching,.travel-map-hatch {pointer-events:none;}
+.travel-map-hatch {fill:url(#travelMapHatching);stroke:none;}
+.travel-map-hatch-stroke {fill:none;stroke:var(--accent);stroke-width:.65;stroke-linecap:round;opacity:.18;}
 .travel-map-city.is-recorded:hover {stroke:var(--accent);}
 .travel-map-city.is-selected {stroke:var(--accent);stroke-width:1;}
 .travel-journal[data-map-level=province] .travel-map-city {stroke:none;}
 .travel-journal[data-map-level=province][data-view=album] .travel-map-city.is-selected {stroke:var(--accent);stroke-width:1;}
-.travel-map-province-border,.travel-map-outline {fill:none;stroke:var(--muted);stroke-width:.9;opacity:.55;vector-effect:non-scaling-stroke;pointer-events:none;}
-.travel-map-outline {stroke-width:1.1;opacity:.7;}
+.travel-map-province-border,.travel-map-outline {fill:none;stroke:var(--muted);stroke-width:.8;opacity:.45;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none;}
+.travel-map-province-border {stroke-dasharray:3 4;}
+.travel-map-outline {stroke:var(--pen);stroke-width:1.1;opacity:.7;}
+.travel-map-outline--echo {stroke-width:.65;opacity:.26;}
 .travel-map-island-dashes {fill:none;stroke:var(--muted);stroke-width:.8;vector-effect:non-scaling-stroke;}
 .travel-map-inset {background:var(--paper);}
 .travel-map-inset-frame {fill:var(--paper);stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;}
-.travel-map-marker {fill:var(--accent);stroke:var(--paper);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none;}
+.travel-map-marker {fill:var(--pen);stroke:var(--paper);stroke-width:.8;vector-effect:non-scaling-stroke;pointer-events:none;}
+.travel-map-selection-ring {fill:none;stroke:var(--accent);stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none;}
 .travel-map-heart {fill:var(--accent);stroke:var(--paper);stroke-width:.7;vector-effect:non-scaling-stroke;pointer-events:none;}
 .travel-map-province-label {fill:var(--muted);font:11px var(--sans);paint-order:stroke;stroke:var(--paper);stroke-width:2.5px;stroke-linejoin:round;pointer-events:none;}
+.travel-map-province-label.is-recorded {fill:var(--accent);font-family:var(--hand);font-weight:600;}
 .travel-map-province-leader {fill:none;stroke:var(--muted);stroke-width:.6;opacity:.45;vector-effect:non-scaling-stroke;pointer-events:none;}
 .travel-map-label {fill:var(--ink);font:13px var(--sans);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round;pointer-events:none;}
+.travel-map-label.is-recorded {font-family:var(--hand);font-weight:600;}
 .travel-map-inset-label {fill:var(--muted);font:12px var(--sans);pointer-events:none;}
 .travel-map-status {position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:var(--muted);font-size:12px;background:var(--paper);}
 .travel-map-status button {background:transparent;color:var(--accent);border:1px solid var(--line);padding:6px 14px;justify-self:center;}
@@ -101,12 +112,18 @@ html.dark .travel-map-terrain {opacity:.3;}
 .travel-entry:last-child {background:none;}
 .travel-entry .travel-place-title {font:400 18px/1.5 var(--display);letter-spacing:.5px;margin-bottom:12px;}
 .travel-entry p {font-size:13px;line-height:1.9;white-space:pre-wrap;margin:0 0 12px;}
-.travel-photo-grid {display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin:0;}
+.travel-photo-grid {display:grid;grid-template-columns:minmax(0,1fr);gap:26px;margin:0;padding:10px 6px 4px;}
 .travel-entry.has-writing .travel-photo-grid {margin-top:17px;}
-.travel-photo {min-width:0;padding:0;background:transparent;border:0;color:var(--ink);text-align:left;display:block;}
-.travel-photo-open {position:relative;display:block;width:100%;border:0;padding:0;background:transparent;color:var(--ink);text-align:left;}
+/* 照片按相册顺序固定交替倾斜，胶带只装饰预览，不影响点击或大图。 */
+.travel-photo {--travel-photo-tilt:-.45deg;min-width:0;padding:0;background:transparent;border:0;color:var(--ink);text-align:left;display:block;}
+.travel-photo[data-photo-tilt=right] {--travel-photo-tilt:.45deg;}
+.travel-photo-open {position:relative;isolation:isolate;display:block;width:100%;border:0;padding:0;background:transparent;color:var(--ink);text-align:left;transform:rotate(var(--travel-photo-tilt));}
+.travel-photo-open::before,.travel-photo-open::after {content:'';position:absolute;z-index:1;top:-7px;width:clamp(30px,8%,60px);height:17px;background:repeating-linear-gradient(97deg,transparent 0 4px,var(--pen-soft) 4px 5px),color-mix(in srgb,var(--marker) 70%,var(--paper));opacity:.7;border:1px solid var(--pen-soft);clip-path:polygon(0 12%,8% 3%,17% 12%,93% 0,100% 14%,96% 88%,88% 100%,6% 93%,0 100%);pointer-events:none;}
+.travel-photo-open::before {left:12px;transform:rotate(-22deg);}
+.travel-photo-open::after {right:12px;transform:rotate(24deg);}
+.travel-photo-open:focus-visible {outline:2px dashed var(--accent);outline-offset:5px;}
 .travel-photo img {display:block;width:100%;height:auto;max-height:none;object-fit:contain;border-radius:var(--sketch-radius-md);background:var(--sage);border:1.5px solid var(--pen);box-shadow:4px 4px 0 var(--pen-soft);margin:0;cursor:zoom-in;}
-.travel-photo figcaption {display:block;color:var(--muted);font:11px/1.7 var(--sans);padding-top:6px;}
+.travel-photo figcaption {display:block;color:var(--muted);font:13px/1.7 var(--hand);padding-top:9px;}
 .travel-photo-error {position:absolute;inset:0;display:grid;place-content:center;border:1px dashed var(--line);background:var(--sage);color:var(--muted);font:11px/1.8 var(--sans);padding:12px;}
 .travel-noscript {padding:15px;border:1px solid var(--line);}
 .travel-journal .travel-photo-viewer {position:fixed;inset:0;margin:auto;border:1.5px solid var(--pen);border-radius:var(--sketch-radius-md);background:var(--paper);color:var(--ink);width:min(1000px,calc(100vw - 40px));max-width:calc(100vw - 40px);height:fit-content;max-height:calc(100dvh - 40px);padding:16px;overflow:auto;overscroll-behavior:contain;}
@@ -141,7 +158,9 @@ html.dark .travel-map-terrain {opacity:.3;}
     .travel-journal h2 {font-size:25px;}
     .travel-city-heading h2 {font-size:32px;}
     .travel-empty .travel-art {max-width:320px;margin-inline:auto;}
-    .travel-photo-grid {gap:14px;}
+    .travel-photo-grid {gap:20px;padding-inline:4px;}
+    .travel-photo {--travel-photo-tilt:-.25deg;}
+    .travel-photo[data-photo-tilt=right] {--travel-photo-tilt:.25deg;}
     .travel-city-heading {padding-bottom:16px;}
     .travel-article .article-header {padding-top:28px;}
     .travel-article .article-header h1 {font-size:28px;margin-top:15px;letter-spacing:.5px;}
@@ -165,4 +184,6 @@ html.dark .travel-map-terrain {opacity:.3;}
     .travel-atlas-layout {display:block;}
     .travel-notebook {background:none;padding:20px 0;position:static;}
     .travel-map-tools {display:none;}
+    .travel-photo-open {transform:none;}
+    .travel-photo-open::before,.travel-photo-open::after {display:none;}
 }

@@ -108,3 +108,27 @@ test('静态页面与菜单也默认暖色，无 JavaScript 时不会回到白�
   assert.match(rendered, /aria-checked="true" data-theme-choice="warm"/);
   assert.match(rendered, /aria-checked="false" data-theme-choice="white"/);
 });
+
+test('手写字体在没有系统楷体的手机上回退到本地托管的文楷切片', () => {
+  const journal = fs.readFileSync(path.join(rootDir, 'source/css/journal.css'), 'utf8');
+  const handFont = fs.readFileSync(path.join(rootDir, 'source/css/hand-font.css'), 'utf8');
+  const stack = journal.match(/--hand:([^;]+);/)[1].split(',').map(name => name.trim().replace(/'/g, ''));
+  assert.ok(stack.indexOf('BiauKai') < stack.indexOf('Journal Hand'));
+  assert.ok(stack.indexOf('Journal Hand') < stack.indexOf('Journal Serif'));
+  assert.ok(head.indexOf("journal_asset('css/hand-font.css')") < head.indexOf("journal_asset('css/journal.css')"));
+  const faces = [...handFont.matchAll(/@font-face\{([^}]+)\}/g)].map(match => match[1]);
+  assert.equal(faces.length, 97);
+  const ranges = [];
+  for (const face of faces) {
+    assert.match(face, /font-family:'Journal Hand'/);
+    assert.match(face, /font-display:swap/);
+    const file = face.match(/url\('\.\.\/fonts\/(wenkai\/[\w-]+\.woff2)'\)/)[1];
+    assert.ok(fs.existsSync(path.join(rootDir, 'source/fonts', file)), file);
+    ranges.push(...face.match(/unicode-range:(.+)$/)[1].split(','));
+  }
+  const covers = char => ranges.some(range => {
+    const [start, end = start] = range.slice(2).split('-').map(hex => parseInt(hex, 16));
+    return char.codePointAt(0) >= start && char.codePointAt(0) <= end;
+  });
+  for (const char of '致广大尽精微归档旅行手账Aa1') assert.ok(covers(char), char);
+});

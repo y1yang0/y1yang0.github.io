@@ -5,6 +5,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
+const { JSDOM } = require('jsdom');
 const { parse: parseFrontMatter } = require('hexo-front-matter');
 const { countries, countryFor } = require('../tools/travel-countries');
 const { compileJournal, mapPlaces } = require('../tools/travel-journal');
@@ -121,6 +123,218 @@ test('checked-in maps and current albums have consistent IDs and complete legacy
     }
   }
   assert.deepEqual(warnings, []);
+});
+
+function renderSketchMap(code, dataOverride) {
+  const root = path.resolve(__dirname, '..');
+  const data = dataOverride || JSON.parse(fs.readFileSync(path.join(root, `tools/data/${code}-map.json`), 'utf8'));
+  const country = countryFor({ travel_country: code });
+  const places = mapPlaces(data, country);
+  const photoPlace = places.find(place => place.id === country.defaultPlace);
+  const notePlace = places.find(place => place.id !== photoPlace.id);
+  const page = { travel_country: code, _content: `# ${photoPlace.id}\n![一](/images/travel/one.jpg)\n![二](/images/travel/two.jpg)\n# ${notePlace.id}\n只有文字。` };
+  const helpers = {};
+  const sandbox = {
+    require(name) {
+      if (name !== 'node:fs') return require(name);
+      return { ...fs, readFileSync(filename, ...args) {
+        return filename === path.join(root, `tools/data/${code}-map.json`) ? JSON.stringify(data) : fs.readFileSync(filename, ...args);
+      } };
+    },
+    hexo: { base_dir: root, source_dir: path.join(root, 'source'), log: { warn: message => assert.fail(message) }, extend: {
+      helper: { register(name, fn) { helpers[name] = fn; } }, filter: { register() {} }
+    } }
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'themes/shiro/scripts/travel-journal.js'), 'utf8'), sandbox);
+  const context = { page, url_for: value => value };
+  return {
+    data, photoPlace, notePlace,
+    markup: helpers.travel_map_markup.call(context),
+    payload: JSON.parse(helpers.travel_map_payload.call(context)),
+    stats: JSON.parse(helpers.travel_journal_payload.call(context)).stats.byPlace
+  };
+}
+
+test('中日地图双轮廓和淡排线不改变地理路径、照片权重或零照片底色', () => {
+  for (const code of ['china', 'japan']) {
+    const map = renderSketchMap(code);
+    const dom = new JSDOM(`<svg xmlns="http://www.w3.org/2000/svg">${map.markup}</svg>`);
+    try {
+      const svg = dom.window.document.querySelector('svg');
+      const source = svg.querySelector('#travelTerrainOutline');
+      assert.equal(source.getAttribute('d'), map.data.outlinePath);
+      const outlines = [...svg.querySelectorAll('use[href="#travelTerrainOutline"]')];
+      assert.equal(outlines.length, 2);
+      assert.ok(outlines[0].classList.contains('travel-map-outline--echo'));
+      assert.equal(outlines[1].hasAttribute('transform'), false);
+      assert.ok(svg.querySelector('#travelMapHatching'));
+      assert.ok(svg.querySelector('#travelMapInkDot'));
+      assert.ok(svg.querySelector('#travelMapSelectionRing'));
+      assert.ok(svg.querySelector('#travelMapHeart'));
+      const ids = [...svg.querySelectorAll('[id]')].map(node => node.id);
+      assert.equal(new Set(ids).size, ids.length);
+      for (const place of mapPlaces(map.data, countryFor({ travel_country: code }))) {
+        const base = svg.querySelector(`.travel-map-cities>path[data-city-id="${place.id}"]`);
+        assert.equal(base.getAttribute('d'), place.path, place.id);
+        assert.equal(base.getAttribute('style'), `--travel-photo-weight:${map.stats[place.id].weight}`);
+        const hatch = svg.querySelector(`.travel-map-hatching>path[data-hatch-city-id="${place.id}"]`);
+        assert.equal(!!hatch, map.stats[place.id].photos > 0, place.id);
+        if (hatch) {
+          assert.equal(hatch.getAttribute('d'), place.path);
+          assert.equal(hatch.hasAttribute('data-city-id'), false);
+          assert.equal(hatch.parentElement.getAttribute('pointer-events'), 'none');
+        }
+      }
+      assert.equal(map.stats[map.photoPlace.id].weight, '80.00%');
+      assert.equal(map.stats[map.notePlace.id].weight, '0.00%');
+      if (map.data.inset) assert.equal(svg.querySelectorAll('.travel-map-inset .travel-map-outline').length, 2);
+      assert.equal(svg.querySelectorAll('filter,feTurbulence,feDisplacementMap').length, 0);
+      assert.equal(map.markup, renderSketchMap(code).markup);
+    } finally { dom.window.close(); }
+  }
+});
+
+test('手绘样式共用主题令牌，保留小地名可读性，胶带只作用于相册预览', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../themes/shiro/source/css/travel-journal.css'), 'utf8');
+  const rule = selector => {
+    const start = css.indexOf(`\n${selector} {`);
+    assert.notEqual(start, -1, selector);
+    return css.slice(start + 1, css.indexOf('}', start));
+  };
+  assert.match(rule('.travel-map-province-border'), /stroke-dasharray:3 4/);
+  assert.match(rule('.travel-map-outline'), /stroke:var\(--pen\)/);
+  assert.match(rule('.travel-map-outline--echo'), /opacity:\.26/);
+  assert.match(rule('.travel-map-hatch'), /fill:url\(#travelMapHatching\)/);
+  assert.match(rule('.travel-map-city.is-recorded'), /var\(--travel-photo-weight,22%\)/);
+  assert.match(rule('.travel-province-shadow'), /fill:var\(--pen-soft\).*pointer-events:none/);
+  assert.doesNotMatch(css, /\.travel-province-surface\s*\{[^}]*filter:/);
+  for (const selector of ['.travel-province-city-label.is-recorded', '.travel-map-province-label.is-recorded', '.travel-map-label.is-recorded']) {
+    assert.match(rule(selector), /font-family:var\(--hand\)/);
+  }
+  assert.match(rule('.travel-province-city-label'), /font:12px var\(--sans\)/);
+  assert.match(rule('.travel-map-province-label'), /font:11px var\(--sans\)/);
+  assert.match(rule('.travel-map-marker'), /fill:var\(--pen\)/);
+  assert.match(rule('.travel-map-selection-ring'), /fill:none;stroke:var\(--accent\)/);
+  assert.match(rule('.travel-map-heart'), /fill:var\(--accent\)/);
+  const countryWave = rule('.travel-country-tabs a[aria-current=page]>span::after');
+  assert.match(countryWave, /mask:var\(--squiggle\)/);
+  assert.doesNotMatch(countryWave, /text-decoration:underline/);
+  assert.match(rule('.travel-photo-open::before,.travel-photo-open::after'), /opacity:\.7.*pointer-events:none/);
+  assert.match(rule('.travel-photo figcaption'), /font:13px\/1\.7 var\(--hand\)/);
+  assert.match(rule('.travel-photo-open'), /transform:rotate\(var\(--travel-photo-tilt\)\)/);
+  assert.match(rule('.travel-photo-viewer img'), /border-radius:3px/);
+  assert.match(css, /@media print[^]*\.travel-photo-open \{transform:none;\}/);
+});
+
+async function sketchMapFixture(code) {
+  const previous = Object.fromEntries(['window', 'document', 'ResizeObserver', 'requestAnimationFrame', 'cancelAnimationFrame'].map(key => [key, global[key]]));
+  const cities = [
+    { id: '330100', name: '杭州市', province: '浙江省', center: [40, 50], path: 'M25 35L55 35L55 65L25 65Z' },
+    { id: '330200', name: '宁波市', province: '浙江省', center: [80, 50], path: 'M65 35L95 35L95 65L65 65Z' },
+    { id: '320100', name: '南京市', province: '江苏省', center: [140, 120], path: 'M125 105L155 105L155 135L125 135Z' }
+  ];
+  const provinces = code === 'japan' ? cities.map((city, index) => ({ ...city,
+    id: ['JP-26', 'JP-28', 'JP-13'][index], name: ['京都府', '兵库县', '东京都'][index] })) : [
+    { id: '33', name: '浙江省', center: [60, 50], path: 'M25 35L95 35L95 65L25 65Z' },
+    { id: '32', name: '江苏省', center: [140, 120], path: cities[2].path }
+  ];
+  const map = renderSketchMap(code, { viewBox: [0, 0, 200, 160], cities, provinces,
+    outlinePath: 'M10 10L190 10L190 150L10 150Z' });
+  const dom = new JSDOM(`<div id="root" data-country="${code}" data-map-level="${code === 'japan' ? 'province' : 'city'}">
+    <svg id="travelMap" viewBox="0 0 200 160"><g id="travelMapCanvas">${map.markup}</g></svg>
+    <div id="travelMapStatus" hidden></div><button id="travelRetry"></button><div id="travelMapTooltip" hidden></div>
+    <button data-travel-zoom="in"></button><button data-travel-zoom="out"></button><button data-travel-zoom="reset"></button>
+    <script id="travelMapData" type="application/json">${JSON.stringify(map.payload)}</script></div>`);
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.ResizeObserver = class { observe() {} };
+  global.requestAnimationFrame = () => 1;
+  global.cancelAnimationFrame = () => {};
+  dom.window.matchMedia = query => ({ matches: true, addEventListener() {} });
+  const svg = dom.window.document.querySelector('svg');
+  Object.defineProperty(svg, 'viewBox', { get() {
+    const [x, y, width, height] = svg.getAttribute('viewBox').split(' ').map(Number);
+    return { baseVal: { x, y, width, height } };
+  } });
+  const prototype = dom.window.SVGElement.prototype;
+  prototype.getScreenCTM = function () {
+    const focus = this.closest('#travelProvinceFocus');
+    const focusScale = Number(focus?.getAttribute('transform')?.match(/scale\(([^)]+)\)/)?.[1]) || 1;
+    const scale = 200 / svg.viewBox.baseVal.width * focusScale;
+    return { a: scale, b: 0, c: 0, d: scale, e: 0, f: 0 };
+  };
+  prototype.getBBox = function () {
+    if (this.tagName === 'text') {
+      const size = parseFloat(this.style.fontSize) || 12;
+      return { x: 0, y: -size / 2, width: this.childNodes[0].textContent.length * size * .6, height: size };
+    }
+    const place = map.payload.places.find(place => place.id === this.dataset.cityId);
+    const [x, y] = place?.center || [60, 50];
+    return { x: x - 15, y: y - 15, width: 30, height: 30 };
+  };
+  svg.createSVGPoint = () => ({ x: 0, y: 0, matrixTransform(matrix) { return { x: this.x * matrix.a, y: this.y * matrix.d }; } });
+  const { createMap } = await import('../themes/shiro/source/js/travel/map.mjs');
+  const selections = [];
+  const errors = [];
+  dom.window.addEventListener('error', event => errors.push(event.error));
+  const controller = createMap({ root: document.getElementById('root'), stats: map.stats,
+    defaultPlace: map.photoPlace.id, onSelect: id => selections.push(id), onError: error => errors.push(error) });
+  return { ...map, controller, svg, selections, errors, dom, dispose() {
+    dom.window.close();
+    Object.entries(previous).forEach(([key, value]) => { if (value === undefined) delete global[key]; else global[key] = value; });
+  } };
+}
+
+test('地图初始化、缩放和回图保留手画圈、爱心与零照片纹理规则', async () => {
+  for (const code of ['china', 'japan']) {
+    const f = await sketchMapFixture(code);
+    try {
+      f.controller.initialize();
+      assert.deepEqual(f.errors, []);
+      assert.equal(f.controller.ready, true);
+      assert.equal(f.svg.querySelectorAll('.travel-map-hatch').length, 1);
+      const originalPathCount = f.svg.querySelectorAll('path[data-city-id]').length;
+      f.controller.select(f.photoPlace.id);
+      const ring = f.svg.querySelector('.travel-map-selection-ring');
+      assert.ok(ring);
+      const mainScale = 200 / f.svg.viewBox.baseVal.width;
+      assert.match(ring.getAttribute('transform'), new RegExp(`scale\\(${1 / mainScale}\\)`));
+      assert.equal(f.svg.querySelectorAll('.travel-map-hatch').length, 1);
+      assert.equal(f.svg.querySelectorAll('path[data-city-id]').length, originalPathCount);
+      if (code === 'china') {
+        assert.ok(f.svg.querySelector('.travel-map-heart'));
+        assert.ok(f.svg.querySelector('.travel-map-label.is-recorded'));
+      } else assert.ok(f.svg.querySelector('.travel-map-province-label.is-recorded'));
+      document.querySelector('[data-travel-zoom="in"]').click();
+      const ringScale = Number(f.svg.querySelector('.travel-map-selection-ring').getAttribute('transform').match(/scale\(([^)]+)\)/)[1]);
+      assert.ok(Math.abs(ringScale - f.svg.viewBox.baseVal.width / 200) < 1e-10);
+      const third = f.payload.places.find(place => ![f.photoPlace.id, f.notePlace.id].includes(place.id));
+      f.controller.select(third.id);
+      assert.ok(f.svg.querySelector('.travel-map-marker[href="#travelMapInkDot"]'));
+      assert.equal(f.svg.querySelectorAll('.travel-map-label.is-recorded').length, 0);
+      f.controller.showAtlas();
+      assert.equal(f.svg.querySelectorAll('.travel-map-selection-ring').length, 0);
+      assert.equal(f.svg.querySelectorAll('.travel-map-hatch').length, 1);
+      if (code === 'china') {
+        const event = new f.dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 40, clientY: 50 });
+        Object.defineProperties(event, { pointerType: { value: 'mouse' }, pointerId: { value: 1 } });
+        f.svg.querySelector(`path[data-city-id="${f.photoPlace.id}"]`).dispatchEvent(event);
+        const focus = f.svg.querySelector('#travelProvinceFocus');
+        assert.ok(focus);
+        assert.ok(focus.querySelector('.travel-province-shadow'));
+        assert.equal(focus.querySelector('.travel-province-shadow').querySelectorAll('[data-city-id]').length, 0);
+        assert.equal(focus.querySelectorAll('.travel-map-hatch').length, 1);
+        assert.equal(focus.querySelectorAll('.travel-province-city-label.is-recorded').length, 2);
+        assert.equal(focus.querySelectorAll('.travel-province-city-label:not(.is-recorded)').length, 0);
+        focus.querySelector('.travel-province-city-label').dispatchEvent(new f.dom.window.MouseEvent('click', { bubbles: true }));
+        assert.equal(f.selections.length, 1);
+      }
+      f.stats[f.photoPlace.id] = { recorded: true, photos: 0, weight: '0.00%' };
+      f.controller.initialize();
+      assert.deepEqual(f.errors, []);
+      assert.equal(f.svg.querySelectorAll('.travel-map-hatch').length, 0);
+    } finally { f.dispose(); }
+  }
 });
 
 function jpegWithLargePreview() {

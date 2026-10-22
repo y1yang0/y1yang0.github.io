@@ -11,7 +11,7 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-async function fixture({ firstCount = 5, secondCount = 2, native = false } = {}) {
+async function fixture({ firstCount = 5, secondCount = 2, native = false, splitEntries = false } = {}) {
   const previousWindow = global.window;
   const previousDocument = global.document;
   const dom = new JSDOM(`<section id="travelRoot" data-country-name="中国">
@@ -29,6 +29,11 @@ async function fixture({ firstCount = 5, secondCount = 2, native = false } = {})
       width: 640, height: 480
     })) }] });
   const albums = { a: albumFor('a', firstCount), b: albumFor('b', secondCount) };
+  if (splitEntries) {
+    const entry = albums.a.entries[0];
+    const remaining = entry.photos.splice(1);
+    albums.a.entries.push({ title: '第二处景点', notes: '', photos: remaining });
+  }
   const requests = [];
   const imageLoader = native ? undefined : {
     load(src, options) {
@@ -91,6 +96,22 @@ test('every album image has caption size metadata, including an empty annotation
     assert.equal(photos[0].fileSize.textContent, '1024 B');
     assert.equal(photos[0].image.dataset.imageState, 'loaded');
     assert.equal(photos[0].src, 'https://journal.test/images/a1.jpg');
+  } finally { f.dispose(); }
+});
+
+test('相册照片跨记录固定交替倾斜，重新打开方向不变且说明和加载状态保持完整', async () => {
+  const f = await fixture({ firstCount: 3, splitEntries: true });
+  try {
+    const photos = f.renderFirst();
+    const readTilts = () => [...f.root.querySelectorAll('.travel-photo')].map(figure => figure.dataset.photoTilt);
+    assert.deepEqual(readTilts(), ['left', 'right', 'left']);
+    assert.ok(photos.every(photo => photo.button.parentElement.querySelector('figcaption') && photo.button.getAttribute('aria-label')));
+    assert.equal(f.root.querySelectorAll('.travel-entry').length, 2);
+    assert.equal(f.root.querySelectorAll('.travel-entry')[1].querySelector('.travel-photo').dataset.photoTilt, 'right');
+    f.album.hide();
+    f.renderFirst();
+    assert.deepEqual(readTilts(), ['left', 'right', 'left']);
+    assert.equal(f.album.photos[0].progress.textContent, '加载中…');
   } finally { f.dispose(); }
 });
 
