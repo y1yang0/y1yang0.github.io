@@ -111,6 +111,10 @@ travel_journal: true
 
 ![山下的梯田](../images/travel/jinhua-xhs2.jpg)
 
+## 东阳卢宅
+
+![北有故宫，南有卢宅](../images/travel/jinhua-luzhai.jpg)
+
 # 台州
 
 ## 水桶岙

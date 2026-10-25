@@ -72,7 +72,8 @@
     {% endif %}
     <link rel="stylesheet" href="{{ journal_asset('css/hand-font.css') }}">
     <link rel="stylesheet" href="{{ journal_asset('css/journal.css') }}">
-    {% if page.travel_journal %}<link rel="stylesheet" href="{{ journal_asset('css/travel-journal.css') }}">{% endif %}
+    {% if page.travel_journal %}<link rel="stylesheet" href="{{ journal_asset('css/travel-journal.css') }}">
+    {% for module in journal_module_preloads() %}<link rel="modulepreload" href="{{ module }}">{% endfor %}{% endif %}
 
     <!-- Analytics -->
     {% include "../analytics/google.njk" %}

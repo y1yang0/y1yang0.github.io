@@ -1,13 +1,14 @@
 {% from "_partial/components/travel-art.njk" import travel_scene with context %}
 {% set country = travel_country(page) %}
 {% set location_label = '地区' if country.mapLevel == 'province' else '城市' %}
+{% set album_cities = travel_album_cities(page) %}
 <div class="travel-journal" id="travelJournal" data-view="atlas" data-country="{{ country.code }}" data-country-name="{{ country.name }}" data-map-level="{{ country.mapLevel }}" lang="zh-CN">
     <div class="travel-atlas-layout">
         <section class="travel-atlas" aria-label="{{ location_label }}旅行地图">
             <header class="travel-atlas-heading">
                 <div class="travel-atlas-actions"><button type="button" id="travelAllCities" aria-label="返回{{ country.name }}全部{{ location_label }}地图" hidden>← 返回地图</button></div>
             </header>
-            <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的{{ location_label }}" hidden></nav>
+            <nav id="travelAlbumCities" class="travel-album-cities" aria-label="已记录的{{ location_label }}"{% if not album_cities %} hidden{% endif %}>{{ album_cities | safe }}</nav>
             <div class="travel-map-stage">
                 <svg id="travelMap" xmlns="http://www.w3.org/2000/svg" viewBox="{{ travel_map_viewbox() }}" width="1000" height="760" role="group" tabindex="0" aria-labelledby="travelMapTitle" aria-describedby="travelKeyboardHint"><title id="travelMapTitle">{{ country.name }}{{ location_label }}旅行地图</title>{% if country.credit %}<desc>{{ country.credit }}</desc>{% endif %}<g id="travelMapCanvas" class="travel-map-canvas" aria-hidden="true">{{ travel_map_markup() | safe }}</g></svg>
                 <div id="travelMapStatus" class="travel-map-status" role="status" hidden><button type="button" id="travelRetry" hidden>重新初始化</button></div>

@@ -59,6 +59,22 @@ hexo.extend.helper.register('travel_journal_payload', function (page = this.page
 
 hexo.extend.helper.register('travel_map_viewbox', function () { return readMap(this.page).viewBox.join(' '); });
 
+// 与 album.mjs 的 renderCityControls 同构：城市列表随 HTML 直出，脚本就绪后再接管交互。
+hexo.extend.helper.register('travel_album_cities', function (page = this.page) {
+  const country = countryFor(page);
+  const { byPlace } = readJournal(page).stats;
+  const shortName = name => country.mapLevel === 'province' ? name : name.replace(/(?:特别行政区|自治州|地区|市)$/u, '');
+  return mapPlaces(readMap(page), country)
+    .map(place => ({ id: String(place.id), name: place.name, photos: byPlace[place.id]?.photos || 0 }))
+    .filter(place => byPlace[place.id]?.recorded)
+    .sort((a, b) => b.photos - a.photos)
+    .map(place => element('button', {
+      type: 'button', 'data-city-id': place.id,
+      'aria-label': `${shortName(place.name)}，${place.photos} 张照片`,
+      title: `${place.name} · ${place.photos} 张照片`, 'aria-pressed': 'false'
+    }, escapeHTML(`${shortName(place.name)}(${place.photos})`))).join('');
+});
+
 hexo.extend.helper.register('travel_map_payload', function () {
   const data = readMap(this.page);
   const places = mapPlaces(data, countryFor(this.page)).map(place => ({
