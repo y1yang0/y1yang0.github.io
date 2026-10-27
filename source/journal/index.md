@@ -15,6 +15,8 @@ travel_journal: true
 
 ![西湖松鼠](../images/travel/hangzhou-xihu3.jpg)
 
+![三潭印月，但我只拍到了一个柱子](../images/travel/hangzhou-styy.jpg)
+
 ## 京杭大运河
 
 ![西湖文化广场的桥上看京杭大运河，景美故事更美](../images/travel/hangzhou-dayunhe.jpg)
@@ -188,6 +190,8 @@ travel_journal: true
 # 绍兴
 
 ## 㹧𱮒（Āng Sāng）湖
+
+![Welcome To AngSang Lake](../images/travel/shaoxing-ash4.jpg)
 
 ![㹧𱮒湖，中间听说叫纤道，船夫在道上用绳子拉船走](../images/travel/shaoxing-ash1.jpg)
 
