@@ -79,6 +79,18 @@ travel_journal: true
 
 ![现场很壮观](../images/travel/huzhou-zrbwg.jpg)
 
+## 龙之梦动物世界
+
+![东北虎](../images/travel/huzhou-lzm1.jpg)
+
+![金钱豹](../images/travel/huzhou-lzm2.jpg)
+
+# 衢州
+
+## 江郎山
+
+![三爿石，据传徐霞客来过三次](../images/travel/quzhou-jls.jpg)
+
 # 宁波
 
 ## 海天一洲
