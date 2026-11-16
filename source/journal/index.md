@@ -374,3 +374,11 @@ travel_journal: true
 ## 天平山
 
 ![天平山](../images/travel/suzhou-tps.jpg)
+
+# 无锡
+
+## 灵山胜境
+
+![灵山大佛，体感不是特别震撼](../images/travel/wuxi-ls1.jpg)
+
+![巨型梵宫，经费在燃烧](../images/travel/wuxi-ls2.jpg)
