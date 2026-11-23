@@ -329,6 +329,25 @@ test('地图初始化、缩放和回图保留手画圈、爱心与零照片纹�
         focus.querySelector('.travel-province-city-label').dispatchEvent(new f.dom.window.MouseEvent('click', { bubbles: true }));
         assert.equal(f.selections.length, 1);
       }
+      if (code === 'china') {
+        const hover = target => {
+          const event = new f.dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 40, clientY: 50 });
+          Object.defineProperties(event, { pointerType: { value: 'mouse' }, pointerId: { value: 1 } });
+          target.dispatchEvent(event);
+        };
+        f.controller.showAtlas([10, 20, 100, 80]);
+        assert.equal(f.svg.querySelectorAll('.travel-map-city-label').length, 0);
+        f.controller.showAtlas([10, 20, 75, 60]);
+        const labelled = [...f.svg.querySelectorAll('.travel-map-city-label')].map(label => label.dataset.cityId).sort();
+        assert.deepEqual(labelled, [f.photoPlace.id, f.notePlace.id].sort());
+        assert.equal(f.svg.querySelector('.travel-map-city-label').textContent.length > 0, true);
+        hover(f.svg.querySelector(`path[data-city-id="${f.photoPlace.id}"]`));
+        assert.equal(f.svg.querySelector('#travelProvinceFocus'), null);
+        assert.equal(f.dom.window.document.querySelector('#travelMapTooltip').hidden, false);
+        f.svg.querySelector('.travel-map-city-label').dispatchEvent(new f.dom.window.MouseEvent('click', { bubbles: true }));
+        assert.equal(f.selections.length, 2);
+        f.controller.showAtlas();
+      }
       f.stats[f.photoPlace.id] = { recorded: true, photos: 0, weight: '0.00%' };
       f.controller.initialize();
       assert.deepEqual(f.errors, []);

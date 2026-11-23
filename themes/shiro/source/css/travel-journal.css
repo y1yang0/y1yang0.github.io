@@ -87,6 +87,8 @@ html.dark .travel-map-terrain {opacity:.3;}
 .travel-map-province-leader {fill:none;stroke:var(--muted);stroke-width:.6;opacity:.45;vector-effect:non-scaling-stroke;pointer-events:none;}
 .travel-map-label {fill:var(--ink);font:13px var(--sans);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round;pointer-events:none;}
 .travel-map-label.is-recorded {font-family:var(--hand);font-weight:600;}
+.travel-map-city-label {fill:var(--accent);font:600 12px var(--hand);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round;cursor:pointer;}
+.travel-map-city-label:hover {fill:var(--ink);}
 .travel-map-inset-label {fill:var(--muted);font:12px var(--sans);pointer-events:none;}
 .travel-map-status {position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:var(--muted);font-size:12px;background:var(--paper);}
 .travel-map-status button {background:transparent;color:var(--accent);border:1px solid var(--line);padding:6px 14px;justify-self:center;}

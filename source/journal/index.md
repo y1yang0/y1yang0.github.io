@@ -259,8 +259,6 @@ travel_journal: true
 
 ## 临沧随拍
 
-![云南的天离地很近](../images/travel/lincang-walk1.jpg)
-
 ![过年去临沧走亲戚，无聊随机漫步](../images/travel/lincang-walk2.jpg)
 
 ![夏威夷果](../images/travel/lincang-xiaweiyiguo.jpg)

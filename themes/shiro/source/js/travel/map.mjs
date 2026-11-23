@@ -61,6 +61,8 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
     let hoverProvinceName = '';
     let provinceHideTimer = 0;
     let heartPlaceIds = new Set();
+    // 达到该倍数后视为省级视野：直接标注去过的城市，省份标签改为就近不避让。
+    const cityLabelZoom = 2.0;
     function renderMarkers() {
         if (!markers) return;
         const matrix = svg.getScreenCTM();
@@ -101,6 +103,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             }
             markers.append(group);
         });
+        if (!provinceLevel && initialBox[2] / view[2] >= cityLabelZoom) renderCityLabels(scale, selected);
         renderProvinceLabels(scale);
         const insetLabel = canvas.querySelector('.travel-map-inset-label');
         if (insetLabel) {
@@ -112,20 +115,68 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
             insetLabel.setAttribute('text-anchor', 'middle');
         }
     }
-    function renderProvinceLabels(scale) {
-        if (!provinceLabels) return;
-        provinceLabels.replaceChildren();
-        const selected = mode === 'album' ? placeById.get(selectedId) : null;
-        const national = initialBox[2] / view[2] < 2.5;
-        const fontSize = national && scale < .45 ? 9 : 11;
-        const provinceName = name => text(name).replace(country === 'japan' ? /(?:都|府|县)$/u : /(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
-        const margin = (national ? 4 : 12) / scale;
+    function renderCityLabels(scale, selected) {
+        const margin = 6 / scale;
         const frame = [view[0] + margin, view[1] + margin, view[0] + view[2] - margin, view[1] + view[3] - margin];
+        const padding = 3 / scale;
         const occupied = [...markers.querySelectorAll('.travel-map-label')].map(label => {
             const box = label.getBBox();
             return [box.x, box.y, box.x + box.width, box.y + box.height];
         });
-        const cityNames = new Set([...markers.querySelectorAll('.travel-map-label')].map(label => label.textContent));
+        const pinned = new Set();
+        markers.querySelectorAll('.travel-map-pin').forEach(pin => {
+            const center = placeById.get(pin.dataset.cityId)?.center;
+            if (!center) return;
+            const radius = (pin.classList.contains('is-selected') ? 9 : 5) / scale;
+            pinned.add(pin.dataset.cityId);
+            occupied.push([center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius]);
+        });
+        const fits = box => box[0] >= frame[0] && box[1] >= frame[1] && box[2] <= frame[2] && box[3] <= frame[3];
+        const overlaps = box => occupied.some(other => box[0] < other[2] + padding && box[2] > other[0] - padding
+            && box[1] < other[3] + padding && box[3] > other[1] - padding);
+        const inView = ([x, y]) => x >= view[0] && x <= view[0] + view[2] && y >= view[1] && y <= view[1] + view[3];
+        places.filter(city => hasRecord(city.id) && city.id !== selected?.id && Array.isArray(city.center) && inView(city.center))
+            .sort((a, b) => photoCount(b.id) - photoCount(a.id))
+            .forEach(city => {
+                const [cx, cy] = city.center;
+                const label = svgNode('text', {
+                    class: 'travel-map-city-label', 'data-city-id': city.id, 'text-anchor': 'middle', 'dominant-baseline': 'central'
+                });
+                label.textContent = provinceCityName(city);
+                label.style.fontSize = `${12 / scale}px`;
+                label.style.strokeWidth = `${3 / scale}px`;
+                markers.append(label);
+                const box = label.getBBox();
+                // 有图钉的城市把名字让到图钉旁边，其余优先写在城市中心。
+                const gap = (pinned.has(city.id) ? 9 : 2) / scale;
+                const dx = box.width / 2 + gap;
+                const dy = box.height / 2 + gap;
+                const offsets = [...(pinned.has(city.id) ? [] : [[0, 0]]),
+                    [0, dy], [0, -dy], [dx, 0], [-dx, 0], [dx, dy], [-dx, dy], [dx, -dy], [-dx, -dy]];
+                const areaAt = (x, y) => [x + box.x, y + box.y, x + box.x + box.width, y + box.y + box.height];
+                const position = offsets.map(([ox, oy]) => [cx + ox, cy + oy])
+                    .find(([x, y]) => fits(areaAt(x, y)) && !overlaps(areaAt(x, y)));
+                if (!position) { label.remove(); return; }
+                label.setAttribute('x', String(position[0]));
+                label.setAttribute('y', String(position[1]));
+                occupied.push(areaAt(...position));
+            });
+    }
+    function renderProvinceLabels(scale) {
+        if (!provinceLabels) return;
+        provinceLabels.replaceChildren();
+        const selected = mode === 'album' ? placeById.get(selectedId) : null;
+        const national = initialBox[2] / view[2] < cityLabelZoom;
+        const fontSize = national && scale < .45 ? 9 : 11;
+        const provinceName = name => text(name).replace(country === 'japan' ? /(?:都|府|县)$/u : /(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
+        const margin = (national ? 4 : 12) / scale;
+        const frame = [view[0] + margin, view[1] + margin, view[0] + view[2] - margin, view[1] + view[3] - margin];
+        const cityLabels = [...markers.querySelectorAll('.travel-map-label, .travel-map-city-label')];
+        const occupied = cityLabels.map(label => {
+            const box = label.getBBox();
+            return [box.x, box.y, box.x + box.width, box.y + box.height];
+        });
+        const cityNames = new Set(cityLabels.map(label => label.textContent));
         markers.querySelectorAll('.travel-map-pin').forEach(pin => {
             const center = placeById.get(pin.dataset.cityId)?.center;
             const radius = pin.classList.contains('is-selected') ? 9 : 5;
@@ -358,8 +409,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         const targetSize = provinceCities.length === 1 ? 72 : Math.min(300, 210 + provinceCities.length * 4);
         const maximumScale = provinceCities.length === 1 ? 24 : 3.2;
         const viewportScale = Math.min((view[2] - 32 / screenScale) / width, (view[3] - 58 / screenScale) / height);
-        const minimumScale = initialBox[2] / view[2] > 1.01 ? .01 : 1.06;
-        const focusScale = Math.min(viewportScale, Math.max(minimumScale,
+        const focusScale = Math.min(viewportScale, Math.max(1.06,
             Math.min(maximumScale, targetSize / (Math.max(width, height) * screenScale))));
         const pixelScale = screenScale * focusScale;
         const focus = svgNode('g', {id: 'travelProvinceFocus', class: 'travel-province-focus', 'data-province': name});
@@ -457,7 +507,8 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
     }
     function showProvinceHover(event, city) {
         if (provinceLevel) return false;
-        if (!mapReady || mode !== 'atlas'
+        // 放大后城市已足够大，可直接点选，不再弹出省份浮层。
+        if (!mapReady || mode !== 'atlas' || root.dataset.zoomed === 'true'
             || event.pointerType !== 'mouse' || !mouseMagnifier.matches) {
             hideProvinceFocus();
             return false;
