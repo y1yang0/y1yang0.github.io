@@ -335,7 +335,7 @@ test('地图初始化、缩放和回图保留手画圈、爱心与零照片纹�
           Object.defineProperties(event, { pointerType: { value: 'mouse' }, pointerId: { value: 1 } });
           target.dispatchEvent(event);
         };
-        f.controller.showAtlas([10, 20, 100, 80]);
+        f.controller.showAtlas([10, 20, 125, 100]);
         assert.equal(f.svg.querySelectorAll('.travel-map-city-label').length, 0);
         f.controller.showAtlas([10, 20, 75, 60]);
         const labelled = [...f.svg.querySelectorAll('.travel-map-city-label')].map(label => label.dataset.cityId).sort();

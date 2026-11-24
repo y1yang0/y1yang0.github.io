@@ -61,8 +61,10 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
     let hoverProvinceName = '';
     let provinceHideTimer = 0;
     let heartPlaceIds = new Set();
-    // 达到该倍数后视为省级视野：直接标注去过的城市，省份标签改为就近不避让。
+    // 达到该倍数后直接标注去过的城市名。
     const cityLabelZoom = 2.0;
+    // 低于该倍数时省份标签按全国视图排布（可带引线避让），与城市名阈值相互独立。
+    const nationalZoom = 2.5;
     function renderMarkers() {
         if (!markers) return;
         const matrix = svg.getScreenCTM();
@@ -166,7 +168,7 @@ export function createMap({root, stats, defaultPlace, onSelect, onViewChange = (
         if (!provinceLabels) return;
         provinceLabels.replaceChildren();
         const selected = mode === 'album' ? placeById.get(selectedId) : null;
-        const national = initialBox[2] / view[2] < cityLabelZoom;
+        const national = initialBox[2] / view[2] < nationalZoom;
         const fontSize = national && scale < .45 ? 9 : 11;
         const provinceName = name => text(name).replace(country === 'japan' ? /(?:都|府|县)$/u : /(?:维吾尔自治区|壮族自治区|回族自治区|自治区|特别行政区|省|市)$/u, '');
         const margin = (national ? 4 : 12) / scale;
